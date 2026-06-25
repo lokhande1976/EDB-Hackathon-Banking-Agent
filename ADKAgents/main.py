@@ -4,6 +4,7 @@
 
 import os
 import uvicorn
+from fastapi.staticfiles import StaticFiles
 from google.adk.cli.fast_api import get_fast_api_app
 
 # 1. Grab the dynamic port assigned by Google Cloud Run
@@ -17,6 +18,11 @@ app = get_fast_api_app(
     web=True,
     trace_to_cloud=os.environ.get("TRACE_TO_CLOUD", "false").lower() == "true",
 )
+
+# 3. Serve the React frontend at /ui (built via `npm run build` in frontend/)
+_frontend_dist = os.path.join(AGENT_DIR, "frontend", "dist")
+if os.path.exists(_frontend_dist):
+    app.mount("/ui", StaticFiles(directory=_frontend_dist, html=True), name="ui")
 
 
 from fastapi.responses import HTMLResponse
