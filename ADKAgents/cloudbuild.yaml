@@ -96,6 +96,8 @@ steps:
 
   # ── 6. API smoke test + integration tests ────────────────────────────────
   #    Uses our pre-built test image (Artifact Registry) — avoids Docker Hub
+  #    Use python -m pytest directly so the image's pre-built venv (/app/.venv)
+  #    is used as-is; `uv run` would create a fresh /workspace venv and lose deps.
   - id: smoke-test
     name: us-central1-docker.pkg.dev/ltc-ipnihack-prj-11/agent-repo/tests:latest
     entrypoint: bash
@@ -104,13 +106,15 @@ steps:
       - |
         set -e
         TEST_BASE_URL=https://agent-service-577303767450.$_REGION_US.run.app \
-          uv run pytest tests/test_integration.py -v --tb=short -x \
+          python -m pytest tests/test_integration.py -v --tb=short -x \
             --alluredir=allure-results \
             -k "reachable or session_create"
     waitFor: [deploy-us, deploy-india]
 
   # ── 7. Playwright E2E tests ───────────────────────────────────────────────
   #    Uses our pre-built test image — Chromium + all deps already installed
+  #    Use python -m pytest directly so the image's pre-built venv (/app/.venv)
+  #    is used as-is; `uv run` would create a fresh /workspace venv without browsers.
   - id: test-playwright
     name: us-central1-docker.pkg.dev/ltc-ipnihack-prj-11/agent-repo/tests:latest
     entrypoint: bash
@@ -119,7 +123,7 @@ steps:
       - |
         set -e
         TEST_BASE_URL=https://agent-service-577303767450.$_REGION_US.run.app/ui \
-          uv run pytest tests/test_playwright.py \
+          python -m pytest tests/test_playwright.py \
             -v --tb=short \
             --alluredir=allure-results \
             -k "load or status or chip or mode_c or mode_b or mode_a or typing or new_chat or mobile"
