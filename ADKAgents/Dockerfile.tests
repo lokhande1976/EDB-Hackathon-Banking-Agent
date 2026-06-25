@@ -1,0 +1,51 @@
+# ── Stage 1: Build the React frontend ──────────────────────────────────────
+FROM node:20-slim AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package.json ./
+RUN npm install --silent
+COPY frontend/ ./
+RUN npm run build
+
+# ── Stage 2: Test runner ────────────────────────────────────────────────────
+# Playwright Python image ships Chromium + all browser deps pre-installed
+FROM mcr.microsoft.com/playwright/python:v1.52.0-jammy
+
+# Install uv + Java (required by Allure CLI for report generation)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends default-jre-headless wget && \
+    wget -q https://github.com/allure-framework/allure2/releases/download/2.27.0/allure-2.27.0.tgz && \
+    tar -xzf allure-2.27.0.tgz -C /opt/ && \
+    ln -s /opt/allure-2.27.0/bin/allure /usr/local/bin/allure && \
+    rm allure-2.27.0.tgz && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ENV UV_COMPILE_BYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install Python deps (production + dev/test)
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen --group dev
+
+# Install Playwright Chromium inside the venv
+RUN uv run playwright install chromium --with-deps
+
+# Copy application source (needed for structural tests)
+COPY main.py ./
+COPY bank_agent ./bank_agent/
+COPY bank_data.db ./
+
+# Copy built React frontend (enables cache-header assertion in test_api.py)
+COPY --from=frontend-builder /frontend/dist ./frontend/dist/
+
+# Copy test suite
+COPY tests ./tests/
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+COPY run_tests.sh upload_report.py ./
+RUN chmod +x run_tests.sh
+
+CMD ["./run_tests.sh"]

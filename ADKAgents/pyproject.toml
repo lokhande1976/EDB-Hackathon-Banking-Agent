@@ -35,6 +35,21 @@ obliterate = "deploy.obliterate:main"
 [tool.uv]
 package = true
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+    "pytest-playwright>=0.6",
+    "playwright>=1.49",
+    "allure-pytest>=2.13",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = ["."]
+addopts = "--alluredir=allure-results --clean-alluredir"
+
 [tool.hatch.build.targets.wheel]
 packages = ["bank_agent", "deploy", "setup_env.py"]
 

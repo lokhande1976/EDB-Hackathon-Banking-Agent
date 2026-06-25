@@ -4,7 +4,10 @@
 
 import os
 import uvicorn
+from fastapi import Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from google.adk.cli.fast_api import get_fast_api_app
 
 # 1. Grab the dynamic port assigned by Google Cloud Run
@@ -12,12 +15,35 @@ port = int(os.environ.get("PORT", 8080))
 
 # 2. Wrap your ADK agent in a production-ready FastAPI web server
 AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+_session_db = os.environ.get("SESSION_DB_PATH", "/tmp/adk_sessions.db")
 app = get_fast_api_app(
     agents_dir=AGENT_DIR,
     allow_origins=["*"],
     web=True,
     trace_to_cloud=os.environ.get("TRACE_TO_CLOUD", "false").lower() == "true",
+    session_service_uri=f"sqlite:///{_session_db}",
 )
+
+# Compress all text/json responses >= 1 KB
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+class StaticCacheMiddleware(BaseHTTPMiddleware):
+    """Cache headers for Vite-hashed assets (1 year) and HTML (5 min)."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if path.startswith("/ui/assets/"):
+            # Vite content-hashes filenames — immutable for 1 year
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif path in ("/ui", "/ui/", "/ui/index.html"):
+            response.headers["Cache-Control"] = "public, max-age=300, must-revalidate"
+        return response
+
+
+app.add_middleware(StaticCacheMiddleware)
 
 # 3. Serve the React frontend at /ui (built via `npm run build` in frontend/)
 _frontend_dist = os.path.join(AGENT_DIR, "frontend", "dist")
