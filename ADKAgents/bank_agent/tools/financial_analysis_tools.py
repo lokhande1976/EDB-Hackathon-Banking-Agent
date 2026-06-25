@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from functools import lru_cache
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -12,11 +13,17 @@ PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "")
 BQ_DATASET = os.getenv("BQ_DATASET", "")
 
 
+@lru_cache(maxsize=1)
+def _bq_client():
+    from google.cloud import bigquery
+    return bigquery.Client(project=PROJECT_ID if PROJECT_ID else None)
+
+
 def _run_query(sql: str, params: list = None) -> pd.DataFrame:
     """Run SQL against BigQuery if configured, otherwise SQLite."""
     if BQ_DATASET:
         from google.cloud import bigquery
-        client = bigquery.Client(project=PROJECT_ID if PROJECT_ID else None)
+        client = _bq_client()
         job_config = None
         if params:
             job_config = bigquery.QueryJobConfig(query_parameters=params)
@@ -39,13 +46,18 @@ def _run_query(sql: str, params: list = None) -> pd.DataFrame:
 def get_spending_analysis(customer_id: str) -> str:
     """Analyse a customer's spending patterns by category over the last 6 months.
 
+    Uses merchant_categories to classify transactions into Food & Dining, Shopping,
+    Transportation, Utilities, Healthcare, Housing, and Entertainment. Also shows
+    essential vs non-essential breakdown.
+
     Args:
-        customer_id: The verified customer ID (e.g. 'C001').
+        customer_id: The verified customer ID (e.g. 'C1001').
 
     Returns:
         A plain-text summary of spending by category and income/savings metrics.
     """
     try:
+        customer_id = customer_id.strip().upper()
         if BQ_DATASET:
             from google.cloud import bigquery
             sql = f"""
@@ -53,94 +65,203 @@ def get_spending_analysis(customer_id: str) -> str:
                     SELECT account_id FROM `{BQ_DATASET}.accounts`
                     WHERE customer_id = @customer_id
                 ),
-                spend AS (
-                    SELECT category,
-                        SUM(CASE WHEN type='debit' THEN ABS(amount) ELSE 0 END) AS total_spent,
-                        COUNT(CASE WHEN type='debit' THEN 1 END) AS tx_count
-                    FROM `{BQ_DATASET}.transactions`
-                    WHERE account_id IN (SELECT account_id FROM account_ids)
-                      AND category NOT IN ('transfer','interest')
+                categorized AS (
+                    SELECT
+                        t.amount,
+                        COALESCE(mc.category, 'Other') AS category,
+                        COALESCE(mc.is_essential, FALSE) AS is_essential
+                    FROM `{BQ_DATASET}.transactions` t
+                    LEFT JOIN `{BQ_DATASET}.merchant_categories` mc
+                        ON REGEXP_CONTAINS(UPPER(t.description), UPPER(mc.merchant_pattern))
+                    WHERE t.account_id IN (SELECT account_id FROM account_ids)
+                      AND t.type = 'debit'
+                ),
+                by_category AS (
+                    SELECT
+                        category,
+                        ANY_VALUE(is_essential) AS is_essential,
+                        ROUND(SUM(ABS(amount)), 2) AS total_spent,
+                        COUNT(*) AS tx_count
+                    FROM categorized
                     GROUP BY category
                 ),
                 income AS (
                     SELECT SUM(amount) AS total_income
                     FROM `{BQ_DATASET}.transactions`
                     WHERE account_id IN (SELECT account_id FROM account_ids)
-                      AND category = 'income'
+                      AND type = 'credit'
                 )
-                SELECT s.category,
-                    ROUND(s.total_spent,2) AS total_spent_gbp,
-                    s.tx_count AS transaction_count,
-                    ROUND(s.total_spent/6,2) AS avg_monthly_gbp,
-                    ROUND(s.total_spent/NULLIF(i.total_income,0)*100,1) AS pct_of_income
-                FROM spend s CROSS JOIN income i
-                ORDER BY s.total_spent DESC
+                SELECT
+                    bc.category,
+                    IF(bc.is_essential, 'Essential', 'Discretionary') AS spending_type,
+                    bc.total_spent,
+                    bc.tx_count AS transactions,
+                    ROUND(bc.total_spent / 6, 2) AS avg_monthly,
+                    ROUND(bc.total_spent / NULLIF(i.total_income, 0) * 100, 1) AS pct_of_income
+                FROM by_category bc CROSS JOIN income i
+                ORDER BY bc.total_spent DESC
             """
             params = [bigquery.ScalarQueryParameter("customer_id", "STRING", customer_id)]
             df = _run_query(sql, params)
+            if df.empty:
+                return f"No transaction data found for customer {customer_id}."
+
+            essential = df[df["spending_type"] == "Essential"]["total_spent"].sum()
+            discretionary = df[df["spending_type"] == "Discretionary"]["total_spent"].sum()
+            total = essential + discretionary
+            header = (
+                f"Spending breakdown (6 months):\n"
+                f"  Essential:     £{essential:>10,.0f}  ({essential/total*100:.0f}% of spend)\n"
+                f"  Discretionary: £{discretionary:>10,.0f}  ({discretionary/total*100:.0f}% of spend)\n\n"
+            )
+            return header + df.to_string(index=False)
         else:
             sql = """
                 SELECT t.category,
-                    ROUND(SUM(CASE WHEN t.type='debit' THEN ABS(t.amount) ELSE 0 END),2) AS total_spent_gbp,
-                    COUNT(CASE WHEN t.type='debit' THEN 1 END) AS transaction_count,
-                    ROUND(SUM(CASE WHEN t.type='debit' THEN ABS(t.amount) ELSE 0 END)/6,2) AS avg_monthly_gbp
+                    ROUND(SUM(CASE WHEN t.type='debit' THEN ABS(t.amount) ELSE 0 END),2) AS total_spent,
+                    COUNT(CASE WHEN t.type='debit' THEN 1 END) AS transactions,
+                    ROUND(SUM(CASE WHEN t.type='debit' THEN ABS(t.amount) ELSE 0 END)/6,2) AS avg_monthly
                 FROM transactions t
                 JOIN accounts a ON t.account_id = a.account_id
                 WHERE a.customer_id = ?
                   AND t.category NOT IN ('transfer','interest')
                 GROUP BY t.category
-                ORDER BY total_spent_gbp DESC
+                ORDER BY total_spent DESC
             """
             conn = sqlite3.connect("bank_data.db")
             df = pd.read_sql_query(sql, conn, params=[customer_id])
             conn.close()
-
-        if df.empty:
-            return f"No transaction data found for customer {customer_id}."
-        return df.to_string(index=False)
+            if df.empty:
+                return f"No transaction data found for customer {customer_id}."
+            return df.to_string(index=False)
     except Exception as e:
         return f"Error running spending analysis: {str(e)}"
 
 
 @traced_tool
 def get_savings_opportunity(customer_id: str) -> str:
-    """Identify monthly surplus, savings rate, and idle cash opportunity.
+    """Full financial picture: cash flow, net worth, debt obligations, and savings opportunities.
+
+    Covers bank accounts, fixed deposits, investments (mutual funds/ETFs), loans, and
+    credit cards to show the complete savings and debt landscape.
 
     Args:
         customer_id: The verified customer ID.
 
     Returns:
-        Plain-text summary of income, expenditure, and savings opportunities.
+        Plain-text summary of income, expenditure, net worth, and savings opportunities.
     """
     try:
-        conn = sqlite3.connect("bank_data.db") if not BQ_DATASET else None
-
+        customer_id = customer_id.strip().upper()
         if BQ_DATASET:
             from google.cloud import bigquery
             sql = f"""
-                WITH accts AS (SELECT account_id, product_type, balance, interest_rate
-                               FROM `{BQ_DATASET}.accounts` WHERE customer_id = @customer_id),
-                income AS (
-                    SELECT ROUND(SUM(amount)/6,2) AS avg_monthly_income
-                    FROM `{BQ_DATASET}.transactions`
-                    WHERE account_id IN (SELECT account_id FROM accts) AND category='income'
+                WITH accts AS (
+                    SELECT account_id, product_type, balance
+                    FROM `{BQ_DATASET}.accounts` WHERE customer_id = @cid
                 ),
-                spend AS (
-                    SELECT ROUND(SUM(ABS(amount))/6,2) AS avg_monthly_spend
+                cash_flow AS (
+                    SELECT
+                        ROUND(SUM(CASE WHEN type='credit' THEN amount ELSE 0 END)/6, 2) AS avg_monthly_income,
+                        ROUND(SUM(CASE WHEN type='debit' THEN ABS(amount) ELSE 0 END)/6, 2) AS avg_monthly_spend
                     FROM `{BQ_DATASET}.transactions`
                     WHERE account_id IN (SELECT account_id FROM accts)
-                      AND type='debit' AND category NOT IN ('transfer','interest')
+                ),
+                inv AS (
+                    SELECT
+                        COALESCE(SUM(invested_amount), 0) AS total_invested,
+                        COALESCE(SUM(current_value), 0) AS total_investment_value,
+                        COALESCE(SUM(monthly_sip), 0) AS total_monthly_sip
+                    FROM `{BQ_DATASET}.investments`
+                    WHERE customer_id = @cid AND status = 'active'
+                ),
+                fd AS (
+                    SELECT
+                        COALESCE(SUM(principal_amount), 0) AS total_fd,
+                        COALESCE(SUM(maturity_amount), 0) AS total_fd_maturity
+                    FROM `{BQ_DATASET}.fixed_deposits`
+                    WHERE customer_id = @cid AND LOWER(status) = 'active'
+                ),
+                loans AS (
+                    SELECT
+                        COALESCE(SUM(emi), 0) AS total_monthly_emi,
+                        COALESCE(SUM(outstanding_amount), 0) AS total_loan_outstanding,
+                        COUNT(*) AS active_loans
+                    FROM `{BQ_DATASET}.loans`
+                    WHERE customer_id = @cid AND status = 'active'
+                ),
+                cc AS (
+                    SELECT
+                        COALESCE(SUM(minimum_due), 0) AS total_min_cc_due,
+                        COALESCE(SUM(current_outstanding), 0) AS total_cc_outstanding
+                    FROM `{BQ_DATASET}.credit_cards`
+                    WHERE customer_id = @cid AND status = 'active'
                 )
-                SELECT i.avg_monthly_income, s.avg_monthly_spend,
-                    ROUND(i.avg_monthly_income - s.avg_monthly_spend,2) AS monthly_surplus,
-                    ROUND((i.avg_monthly_income - s.avg_monthly_spend)/NULLIF(i.avg_monthly_income,0)*100,1) AS savings_rate_pct,
-                    (SELECT STRING_AGG(CONCAT(product_type,': £',CAST(ROUND(balance,0) AS STRING),' @ ',CAST(interest_rate AS STRING),'%'),' | ')
-                     FROM accts) AS accounts_overview
-                FROM income i CROSS JOIN spend s
+                SELECT
+                    cf.avg_monthly_income, cf.avg_monthly_spend,
+                    (SELECT ROUND(SUM(balance), 2) FROM accts) AS total_bank_balance,
+                    i.total_invested, i.total_investment_value, i.total_monthly_sip,
+                    f.total_fd, f.total_fd_maturity,
+                    l.total_monthly_emi, l.total_loan_outstanding, l.active_loans,
+                    c.total_min_cc_due, c.total_cc_outstanding
+                FROM cash_flow cf, inv i, fd f, loans l, cc c
             """
-            params = [bigquery.ScalarQueryParameter("customer_id", "STRING", customer_id)]
+            params = [bigquery.ScalarQueryParameter("cid", "STRING", customer_id)]
             df = _run_query(sql, params)
+            if df.empty:
+                return f"No financial data found for customer {customer_id}."
+
+            r = df.iloc[0]
+            income = float(r["avg_monthly_income"] or 0)
+            spend = float(r["avg_monthly_spend"] or 0)
+            bank_balance = float(r["total_bank_balance"] or 0)
+            total_invested = float(r["total_invested"] or 0)
+            investment_value = float(r["total_investment_value"] or 0)
+            monthly_sip = float(r["total_monthly_sip"] or 0)
+            total_fd = float(r["total_fd"] or 0)
+            fd_maturity = float(r["total_fd_maturity"] or 0)
+            monthly_emi = float(r["total_monthly_emi"] or 0)
+            loan_outstanding = float(r["total_loan_outstanding"] or 0)
+            active_loans = int(r["active_loans"] or 0)
+            min_cc_due = float(r["total_min_cc_due"] or 0)
+            cc_outstanding = float(r["total_cc_outstanding"] or 0)
+
+            total_obligations = monthly_emi + min_cc_due + monthly_sip
+            free_cash_flow = round(income - spend - total_obligations, 2)
+            savings_rate = round(free_cash_flow / income * 100, 1) if income else 0
+
+            total_savings = bank_balance + total_fd + investment_value
+            total_debt = loan_outstanding + cc_outstanding
+            net_worth = round(total_savings - total_debt, 2)
+            investment_gain = round(investment_value - total_invested, 2)
+
+            return f"""=== SAVINGS & FINANCIAL OPPORTUNITY ===
+
+CASH FLOW (monthly avg over 6 months):
+  Income (credits):    £{income:>12,.0f}
+  Expenses (debits):   £{spend:>12,.0f}
+  Loan EMIs:           £{monthly_emi:>12,.0f}
+  Credit card min due: £{min_cc_due:>12,.0f}
+  Monthly SIP:         £{monthly_sip:>12,.0f}
+  ─────────────────────────────────────
+  Free cash flow:      £{free_cash_flow:>12,.0f}  ({savings_rate}% savings rate)
+
+WEALTH SNAPSHOT:
+  Bank accounts:       £{bank_balance:>12,.0f}
+  Investments:         £{investment_value:>12,.0f}  (gain: £{investment_gain:+,.0f} on £{total_invested:,.0f} invested)
+  Fixed deposits:      £{total_fd:>12,.0f}  (matures to £{fd_maturity:,.0f})
+  ─────────────────────────────────────
+  Total savings:       £{total_savings:>12,.0f}
+
+DEBT POSITION:
+  Active loans ({active_loans}):   £{loan_outstanding:>12,.0f} outstanding
+  Credit cards:        £{cc_outstanding:>12,.0f} outstanding
+  ─────────────────────────────────────
+  Total debt:          £{total_debt:>12,.0f}
+  Net worth:           £{net_worth:>12,.0f}
+"""
         else:
+            conn = sqlite3.connect("bank_data.db")
             income_df = pd.read_sql_query(
                 "SELECT ROUND(SUM(amount)/6,2) AS avg_monthly_income FROM transactions t "
                 "JOIN accounts a ON t.account_id=a.account_id "
@@ -160,22 +281,18 @@ def get_savings_opportunity(customer_id: str) -> str:
             conn.close()
 
             income = float(income_df.iloc[0]["avg_monthly_income"] or 0)
-            spend  = float(spend_df.iloc[0]["avg_monthly_spend"] or 0)
+            spend = float(spend_df.iloc[0]["avg_monthly_spend"] or 0)
             surplus = round(income - spend, 2)
             rate = round(surplus / income * 100, 1) if income else 0
             overview = " | ".join(
                 f"{r.product_type}: £{r.balance:.0f} @ {r.interest_rate}%"
                 for _, r in accts_df.iterrows()
             )
-            result = (
-                f"avg_monthly_income    avg_monthly_spend    monthly_surplus    savings_rate_pct    accounts_overview\n"
-                f"{income:>20}    {spend:>17}    {surplus:>14}    {rate:>16}    {overview}"
+            return (
+                f"avg_monthly_income: {income}  avg_monthly_spend: {spend}  "
+                f"monthly_surplus: {surplus}  savings_rate: {rate}%\n"
+                f"Accounts: {overview}"
             )
-            return result
-
-        if df.empty:
-            return f"No financial data found for customer {customer_id}."
-        return df.to_string(index=False)
     except Exception as e:
         return f"Error calculating savings opportunity: {str(e)}"
 
@@ -219,46 +336,18 @@ def get_product_recommendations(
 
         where = " AND ".join(conditions)
 
-        if BQ_DATASET:
-            from google.cloud import bigquery
-            bq_params = []
-            bq_where = ["is_active = TRUE"]
-            if access_type != "any":
-                bq_where.append("access_type = @access_type")
-                bq_params.append(bigquery.ScalarQueryParameter("access_type", "STRING", access_type))
-            if max_monthly_fee == 0.0:
-                bq_where.append("monthly_fee = 0")
-            else:
-                bq_where.append("monthly_fee <= @max_fee")
-                bq_params.append(bigquery.ScalarQueryParameter("max_fee", "FLOAT64", max_monthly_fee))
-            if min_interest_rate > 0:
-                bq_where.append("interest_rate_pa >= @min_rate")
-                bq_params.append(bigquery.ScalarQueryParameter("min_rate", "FLOAT64", min_interest_rate))
-            if product_type != "any":
-                bq_where.append("product_type = @product_type")
-                bq_params.append(bigquery.ScalarQueryParameter("product_type", "STRING", product_type))
-
-            sql = f"""
-                SELECT product_name, product_type, interest_rate_pa AS aer_pct,
-                    monthly_fee AS monthly_fee_gbp, min_deposit AS min_deposit_gbp,
-                    access_type, features, target_segment
-                FROM `{BQ_DATASET}.products`
-                WHERE {" AND ".join(bq_where)}
-                ORDER BY interest_rate_pa DESC
-            """
-            df = _run_query(sql, bq_params)
-        else:
-            sql = f"""
-                SELECT product_name, product_type, interest_rate_pa AS aer_pct,
-                    monthly_fee AS monthly_fee_gbp, min_deposit AS min_deposit_gbp,
-                    access_type, features, target_segment
-                FROM products
-                WHERE {where}
-                ORDER BY interest_rate_pa DESC
-            """
-            conn = sqlite3.connect("bank_data.db")
-            df = pd.read_sql_query(sql, conn, params=params if params else None)
-            conn.close()
+        # Products table lives only in bank_data.db (not in BQ BANK_DATA dataset)
+        sql = f"""
+            SELECT product_name, product_type, interest_rate_pa AS aer_pct,
+                monthly_fee AS monthly_fee_gbp, min_deposit AS min_deposit_gbp,
+                access_type, features, target_segment
+            FROM products
+            WHERE {where}
+            ORDER BY interest_rate_pa DESC
+        """
+        conn = sqlite3.connect("bank_data.db")
+        df = pd.read_sql_query(sql, conn, params=params if params else None)
+        conn.close()
 
         if df.empty:
             return "No products found matching those criteria."
@@ -278,6 +367,7 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
         Wellbeing report with score, dimension breakdown, and action recommendations.
     """
     try:
+        customer_id = customer_id.strip().upper()
         conn = sqlite3.connect("bank_data.db") if not BQ_DATASET else None
 
         if not BQ_DATASET:
@@ -313,30 +403,155 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
         else:
             from google.cloud import bigquery
             sql = f"""
-                WITH accts AS (SELECT account_id, account_type, balance, interest_rate
-                               FROM `{BQ_DATASET}.accounts` WHERE customer_id=@cid),
-                txn AS (SELECT amount,type,category FROM `{BQ_DATASET}.transactions`
-                        WHERE account_id IN (SELECT account_id FROM accts))
+                WITH
+                profile AS (
+                    SELECT COALESCE(monthly_income, 0) AS monthly_income,
+                           COALESCE(employment_type, 'unknown') AS employment_type,
+                           COALESCE(risk_appetite, 'moderate') AS risk_appetite,
+                           COALESCE(dependents, 0) AS dependents
+                    FROM `{BQ_DATASET}.customer_profile`
+                    WHERE customer_id = @cid
+                ),
+                accts AS (
+                    SELECT account_id, product_type, balance
+                    FROM `{BQ_DATASET}.accounts` WHERE customer_id = @cid
+                ),
+                txn AS (
+                    SELECT amount, type FROM `{BQ_DATASET}.transactions`
+                    WHERE account_id IN (SELECT account_id FROM accts)
+                ),
+                loans AS (
+                    SELECT
+                        COALESCE(SUM(emi), 0) AS total_emi,
+                        COALESCE(SUM(outstanding_amount), 0) AS total_loan_outstanding,
+                        COUNT(*) AS loan_count
+                    FROM `{BQ_DATASET}.loans`
+                    WHERE customer_id = @cid AND status = 'active'
+                ),
+                cc AS (
+                    SELECT
+                        COALESCE(SUM(minimum_due), 0) AS total_min_due,
+                        COALESCE(SUM(current_outstanding), 0) AS total_cc_outstanding,
+                        COALESCE(SUM(credit_limit), 0) AS total_credit_limit
+                    FROM `{BQ_DATASET}.credit_cards`
+                    WHERE customer_id = @cid AND status = 'active'
+                ),
+                inv AS (
+                    SELECT
+                        COALESCE(SUM(invested_amount), 0) AS total_invested,
+                        COALESCE(SUM(current_value), 0) AS total_inv_value,
+                        COALESCE(SUM(monthly_sip), 0) AS total_sip
+                    FROM `{BQ_DATASET}.investments`
+                    WHERE customer_id = @cid AND status = 'active'
+                ),
+                fd AS (
+                    SELECT COALESCE(SUM(principal_amount), 0) AS total_fd
+                    FROM `{BQ_DATASET}.fixed_deposits`
+                    WHERE customer_id = @cid AND LOWER(status) = 'active'
+                ),
+                ins AS (
+                    SELECT
+                        COUNTIF(LOWER(policy_type) IN ('term_life','life','ulip')) > 0 AS has_life,
+                        COUNTIF(LOWER(policy_type) IN ('health','medical')) > 0 AS has_health
+                    FROM `{BQ_DATASET}.insurance`
+                    WHERE customer_id = @cid AND LOWER(status) = 'active'
+                )
                 SELECT
-                    COUNT(DISTINCT CASE WHEN category='income' THEN 1 END) AS months_with_income,
-                    ROUND(SUM(CASE WHEN category='income' THEN amount ELSE 0 END)/6,2) AS avg_monthly_income,
-                    ROUND(SUM(CASE WHEN type='debit' AND category NOT IN ('transfer','interest') THEN ABS(amount) ELSE 0 END)/6,2) AS avg_monthly_spend,
-                    (SELECT ROUND(SUM(balance),2) FROM accts WHERE account_type='current') AS current_balance,
-                    (SELECT COUNT(*) FROM accts WHERE balance<0) AS liability_count,
-                    (SELECT COUNT(*) FROM accts) AS total_accounts
-                FROM txn
+                    p.monthly_income, p.employment_type, p.risk_appetite, p.dependents,
+                    ROUND(SUM(CASE WHEN t.type='credit' THEN t.amount ELSE 0 END)/6, 2) AS avg_monthly_income_txn,
+                    ROUND(SUM(CASE WHEN t.type='debit' THEN ABS(t.amount) ELSE 0 END)/6, 2) AS avg_monthly_spend,
+                    (SELECT ROUND(SUM(balance), 2) FROM accts) AS total_bank_balance,
+                    l.total_emi, l.total_loan_outstanding, l.loan_count,
+                    c.total_min_due, c.total_cc_outstanding, c.total_credit_limit,
+                    i.total_invested, i.total_inv_value, i.total_sip,
+                    f.total_fd,
+                    ins.has_life, ins.has_health
+                FROM txn t, profile p, loans l, cc c, inv i, fd f, ins
+                GROUP BY p.monthly_income, p.employment_type, p.risk_appetite, p.dependents,
+                         l.total_emi, l.total_loan_outstanding, l.loan_count,
+                         c.total_min_due, c.total_cc_outstanding, c.total_credit_limit,
+                         i.total_invested, i.total_inv_value, i.total_sip,
+                         f.total_fd, ins.has_life, ins.has_health
             """
             params = [bigquery.ScalarQueryParameter("cid", "STRING", customer_id)]
             row = _run_query(sql, params).iloc[0]
-            avg_monthly_income = float(row["avg_monthly_income"] or 0)
+
+            profile_income   = float(row["monthly_income"] or 0)
+            txn_income       = float(row["avg_monthly_income_txn"] or 0)
+            avg_monthly_income = profile_income if profile_income > 0 else txn_income
             avg_monthly_spend  = float(row["avg_monthly_spend"] or 0)
-            months_with_income = int(row["months_with_income"] or 0)
-            monthly_surplus    = round(avg_monthly_income - avg_monthly_spend, 2)
-            savings_rate       = round(monthly_surplus / avg_monthly_income * 100, 1) if avg_monthly_income else 0
-            current_balance    = float(row["current_balance"] or 0)
-            months_cushion     = round(current_balance / avg_monthly_spend, 2) if avg_monthly_spend else 0
-            liability_count    = int(row["liability_count"] or 0)
-            total_accounts     = int(row["total_accounts"] or 1)
+            total_bank_balance = float(row["total_bank_balance"] or 0)
+            total_emi          = float(row["total_emi"] or 0)
+            loan_outstanding   = float(row["total_loan_outstanding"] or 0)
+            loan_count         = int(row["loan_count"] or 0)
+            total_min_due      = float(row["total_min_due"] or 0)
+            cc_outstanding     = float(row["total_cc_outstanding"] or 0)
+            credit_limit       = float(row["total_credit_limit"] or 0)
+            total_invested     = float(row["total_invested"] or 0)
+            inv_value          = float(row["total_inv_value"] or 0)
+            total_sip          = float(row["total_sip"] or 0)
+            total_fd           = float(row["total_fd"] or 0)
+            has_life           = bool(row["has_life"])
+            has_health         = bool(row["has_health"])
+            risk_appetite      = str(row["risk_appetite"] or "moderate")
+            employment_type    = str(row["employment_type"] or "")
+
+            monthly_obligations = total_emi + total_min_due + total_sip
+            free_cash_flow = avg_monthly_income - avg_monthly_spend - monthly_obligations
+            savings_rate = round(free_cash_flow / avg_monthly_income * 100, 1) if avg_monthly_income else 0
+            months_cushion = round(total_bank_balance / avg_monthly_spend, 1) if avg_monthly_spend else 0
+
+            # ── 1. Cash Flow & Savings (25 pts) ──────────────────────────────
+            cash_flow_score = min(25, max(0, savings_rate / 20 * 25))
+
+            # ── 2. Debt Health (25 pts) ───────────────────────────────────────
+            dti = (total_emi + total_min_due) / avg_monthly_income * 100 if avg_monthly_income else 100
+            dti_score = (25 if dti < 20 else 18 if dti < 30 else 12 if dti < 40 else 5 if dti < 50 else 0)
+            cc_util = cc_outstanding / credit_limit * 100 if credit_limit else 0
+            cc_penalty = max(0, (cc_util - 30) / 70 * 5) if cc_util > 30 else 0
+            debt_score = max(0, round(dti_score - cc_penalty, 1))
+
+            # ── 3. Liquid Safety Net (20 pts) ─────────────────────────────────
+            cushion_score = min(20, max(0, round(months_cushion / 6 * 20, 1)))
+
+            # ── 4. Savings & Investments (20 pts) ────────────────────────────
+            total_wealth = inv_value + total_fd
+            wealth_to_income = total_wealth / (avg_monthly_income * 12) if avg_monthly_income else 0
+            investment_score = min(20, max(0, round(wealth_to_income / 2 * 20, 1)))
+
+            # ── 5. Insurance Protection (10 pts) ─────────────────────────────
+            insurance_score = (5 if has_life else 0) + (5 if has_health else 0)
+
+            total_score = round(cash_flow_score + debt_score + cushion_score + investment_score + insurance_score, 1)
+            rating = (
+                "Excellent"       if total_score >= 80 else
+                "Good"            if total_score >= 60 else
+                "Fair"            if total_score >= 40 else
+                "Needs Attention"
+            )
+            investment_gain = round(inv_value - total_invested, 2)
+
+            return f"""FINANCIAL WELLBEING SCORE: {total_score}/100 — {rating}
+
+Dimension Breakdown:
+  Cash Flow & Savings: {cash_flow_score:.1f}/25  (£{free_cash_flow:,.0f}/month free, {savings_rate}% savings rate)
+  Debt Health:         {debt_score:.1f}/25  (DTI {dti:.0f}%, {loan_count} loan(s), CC utilisation {cc_util:.0f}%)
+  Liquid Safety Net:   {cushion_score:.1f}/20  ({months_cushion:.1f} months of expenses in bank)
+  Savings & Invest.:   {investment_score:.1f}/20  (£{total_wealth:,.0f} in FDs + investments, {wealth_to_income:.1f}× annual income)
+  Insurance:           {insurance_score:.1f}/10  ({'Life ✓' if has_life else 'Life ✗'}  {'Health ✓' if has_health else 'Health ✗'})
+
+Key Metrics:
+  Monthly Income:      £{avg_monthly_income:>12,.0f}  [{employment_type}]
+  Monthly Expenses:    £{avg_monthly_spend:>12,.0f}
+  Loan EMIs + CC due:  £{monthly_obligations:>12,.0f}
+  Free Cash Flow:      £{free_cash_flow:>12,.0f}
+  Bank Balance:        £{total_bank_balance:>12,.0f}
+  Investments:         £{inv_value:>12,.0f}  (gain: £{investment_gain:+,.0f})
+  Fixed Deposits:      £{total_fd:>12,.0f}
+  Loans Outstanding:   £{loan_outstanding:>12,.0f}
+  CC Outstanding:      £{cc_outstanding:>12,.0f}
+  Risk Appetite:       {risk_appetite}
+"""
 
         income_score  = min(25, months_with_income / 6 * 25)
         savings_score = min(25, max(0, savings_rate / 20 * 25))

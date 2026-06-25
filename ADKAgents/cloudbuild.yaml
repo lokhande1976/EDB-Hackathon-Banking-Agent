@@ -69,7 +69,7 @@ steps:
       - --max-instances=20
       - --concurrency=20
       - --execution-environment=gen2
-      - --set-env-vars=GOOGLE_API_KEY=$_GOOGLE_API_KEY,GEMINI_MODEL=gemini-2.5-flash,GOOGLE_CLOUD_PROJECT=$_PROJECT,TRACE_TO_CLOUD=false,LOG_LLM_CONTENT=true,COST_GRANULARITY=session,BQ_DATASET=
+      - --set-env-vars=GOOGLE_API_KEY=$_GOOGLE_API_KEY,GEMINI_MODEL=gemini-2.5-flash,GOOGLE_CLOUD_PROJECT=$_PROJECT,TRACE_TO_CLOUD=false,LOG_LLM_CONTENT=true,COST_GRANULARITY=session,BQ_DATASET=$_PROJECT.BANK_DATA
     waitFor: [push]
 
   # ── 5b. Deploy to asia-south1 (Mumbai — nearest to India) ─────────────────
@@ -91,36 +91,33 @@ steps:
       - --max-instances=20
       - --concurrency=20
       - --execution-environment=gen2
-      - --set-env-vars=GOOGLE_API_KEY=$_GOOGLE_API_KEY,GEMINI_MODEL=gemini-2.5-flash,GOOGLE_CLOUD_PROJECT=$_PROJECT,TRACE_TO_CLOUD=false,LOG_LLM_CONTENT=true,COST_GRANULARITY=session,BQ_DATASET=
+      - --set-env-vars=GOOGLE_API_KEY=$_GOOGLE_API_KEY,GEMINI_MODEL=gemini-2.5-flash,GOOGLE_CLOUD_PROJECT=$_PROJECT,TRACE_TO_CLOUD=false,LOG_LLM_CONTENT=true,COST_GRANULARITY=session,BQ_DATASET=$_PROJECT.BANK_DATA
     waitFor: [push]
 
   # ── 6. API smoke test + integration tests ────────────────────────────────
+  #    Uses our pre-built test image (Artifact Registry) — avoids Docker Hub
   - id: smoke-test
-    name: python:3.13-slim
+    name: us-central1-docker.pkg.dev/ltc-ipnihack-prj-11/agent-repo/tests:latest
     entrypoint: bash
     args:
       - -c
       - |
         set -e
-        pip install httpx pytest --quiet
         TEST_BASE_URL=https://agent-service-577303767450.$_REGION_US.run.app \
-          python -m pytest tests/test_integration.py -v --tb=short -x \
+          uv run pytest tests/test_integration.py -v --tb=short -x \
             --alluredir=allure-results \
             -k "reachable or session_create"
     waitFor: [deploy-us, deploy-india]
 
-  # ── 7. Playwright E2E tests (headless Chromium, live service) ────────────
-  #    Uses the official Playwright image which has browsers pre-installed.
+  # ── 7. Playwright E2E tests ───────────────────────────────────────────────
+  #    Uses our pre-built test image — Chromium + all deps already installed
   - id: test-playwright
-    name: mcr.microsoft.com/playwright/python:v1.52.0-jammy
+    name: us-central1-docker.pkg.dev/ltc-ipnihack-prj-11/agent-repo/tests:latest
     entrypoint: bash
     args:
       - -c
       - |
         set -e
-        pip install uv --quiet
-        uv sync --frozen --group dev
-        uv run playwright install chromium --with-deps
         TEST_BASE_URL=https://agent-service-577303767450.$_REGION_US.run.app/ui \
           uv run pytest tests/test_playwright.py \
             -v --tb=short \
