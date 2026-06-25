@@ -4,7 +4,13 @@
 .app {
   display: flex;
   flex-direction: column;
+  /* Layered fallbacks — each overrides the previous if supported:
+     1. 100%          → inherits visible height from #root (works on iOS via -webkit-fill-available chain)
+     2. 100vh         → absolute fallback for browsers without dvh
+     3. 100dvh        → dynamic viewport: shrinks when iOS address bar appears (must be LAST) */
+  height: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   position: relative;
 }
@@ -216,6 +222,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 28px 20px;
+  -webkit-overflow-scrolling: touch; /* smooth momentum scroll on iOS */
   scrollbar-width: thin;
   scrollbar-color: var(--bg-elevated) transparent;
 }
@@ -468,6 +475,8 @@
   z-index: 10;
   flex-shrink: 0;
   padding: 14px 20px 18px;
+  /* Reserve space for iPhone home indicator */
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
   background: rgba(0,0,0,0.88);
   border-top: 1px solid rgba(0,106,77,0.2);
   backdrop-filter: blur(20px);
@@ -533,7 +542,7 @@
   border: none;
   outline: none;
   color: var(--text-1);
-  font-size: 14px;
+  font-size: 16px; /* ≥16px prevents iOS Safari from zooming on focus */
   font-family: inherit;
   line-height: 1.5;
   padding: 6px 0;
@@ -558,6 +567,43 @@
 }
 .send-btn:disabled      { opacity: 0.35; cursor: not-allowed; transform: none; }
 .send-btn--busy         { background: rgba(255,255,255,0.07); box-shadow: none; }
+
+/* ── Mic button ── */
+.mic-btn {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-2);
+  transition: all 0.18s;
+  touch-action: manipulation; /* eliminate 300ms tap delay on mobile */
+}
+.mic-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-1);
+}
+.mic-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.mic-btn--active {
+  background: rgba(220, 50, 50, 0.18);
+  color: #f87171;
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+.mic-btn--active:hover:not(:disabled) {
+  background: rgba(220, 50, 50, 0.28);
+  color: #fca5a5;
+}
+
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,50,50,0.35); }
+  50%       { box-shadow: 0 0 0 6px rgba(220,50,50,0); }
+}
+
+/* Input form listening state — subtle red border tint */
+.input-form--listening {
+  border-color: rgba(220, 50, 50, 0.4) !important;
+  box-shadow: 0 0 0 3px rgba(220,50,50,0.08), 0 4px 18px rgba(0,0,0,0.3) !important;
+}
 
 .spinner {
   width: 17px; height: 17px;
@@ -588,3 +634,72 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.1); }
+
+/* ══════════════════════════════════════════
+   MOBILE  (≤ 640px)
+══════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  /* Shrink background glows so they don't dominate a small screen */
+  .bg-glow-1 { width: 280px; height: 280px; top: -80px; left: -60px; }
+  .bg-glow-2 { width: 220px; height: 220px; bottom: -60px; right: -40px; }
+
+  /* Header — tighter padding, hide divider + subtitle to save space */
+  .header { padding: 0 14px; height: 52px; }
+  .brand-divider { display: none; }
+  .brand-sub { display: none; }
+  .lloyds-badge--sm { height: 34px; }
+  .lloyds-badge--sm .lloyds-badge-title { font-size: 13px; }
+  .lloyds-badge--sm .lloyds-badge-sub   { font-size: 6px; }
+  .btn-new-chat { font-size: 11px; padding: 5px 10px; }
+  .status-pill  { padding: 4px 9px; font-size: 10px; }
+
+  /* Chat feed — tighter */
+  .chat-scroll { padding: 16px 12px; }
+  .chat-feed   { gap: 14px; }
+
+  /* Welcome screen — compact */
+  .welcome { padding: 24px 16px 16px; }
+  .welcome-logo-wrap { margin-bottom: 16px; }
+  .lloyds-badge--lg  { height: 64px; border-radius: 8px; }
+  .lloyds-badge--lg .lloyds-badge-title { font-size: 24px; letter-spacing: 2px; }
+  .lloyds-badge--lg .lloyds-badge-sub   { font-size: 11px; }
+  .welcome-title { font-size: 22px; }
+  .welcome-sub   { font-size: 13px; display: none; } /* hide on very small screens */
+  .welcome-note  { font-size: 10px; }
+
+  /* Chips — horizontal scroll instead of wrapping (prevents chips eating half the screen) */
+  .quick-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-bottom: 10px;
+  }
+  .quick-chips::-webkit-scrollbar { display: none; }
+  .qa-chip { font-size: 12px; padding: 7px 13px; flex-shrink: 0; }
+
+  /* Bottom bar — tighter */
+  .bottom-bar { padding: 10px 12px max(14px, env(safe-area-inset-bottom)); }
+
+  /* Input form */
+  .input-form { padding: 4px 4px 4px 14px; border-radius: 16px; gap: 7px; }
+  .send-btn   { width: 36px; height: 36px; border-radius: 10px; }
+  .mic-btn    { width: 44px; height: 44px; } /* iOS HIG minimum 44×44px touch target */
+  .input-hint { font-size: 9px; margin-top: 6px; }
+
+  /* Message bubbles — wider on mobile since the screen is narrow */
+  .msg-bubble { font-size: 14px; padding: 11px 14px; }
+  .bot-body   { max-width: 92%; }
+  .msg-bubble--user { max-width: 88%; }
+
+  /* Insight cards — stack vertically, full width */
+  .insights-row { flex-direction: column; gap: 10px; }
+  .card-gauge, .card-product { min-width: unset; width: 100%; }
+
+  /* Disable hover transforms on touch — avoids sticky-hover on iOS */
+  .qa-chip:hover:not(:disabled) { transform: none; }
+  .send-btn:hover:not(:disabled) { transform: none; }
+}

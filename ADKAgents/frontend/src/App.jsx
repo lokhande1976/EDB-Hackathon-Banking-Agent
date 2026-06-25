@@ -54,6 +54,12 @@ function parseInsights(text) {
   return insights;
 }
 
+const HAS_SPEECH = typeof window !== 'undefined' &&
+  !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+
+// iOS Safari supports webkitSpeechRecognition but not continuous mode reliably
+const IS_IOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
 export default function App() {
   const [userId]    = useState(() => `user_${generateId()}`);
   const [sessionId, setSessionId] = useState(null);
@@ -62,10 +68,16 @@ export default function App() {
   const [input,     setInput]     = useState('');
   const [insights,  setInsights]  = useState({});
   const [error,     setError]     = useState(null);
+  const [listening, setListening] = useState(false);
 
-  const messagesEndRef = useRef(null);
-  const inputRef       = useRef(null);
-  const fullTextRef    = useRef('');
+  const messagesEndRef  = useRef(null);
+  const inputRef        = useRef(null);
+  const fullTextRef     = useRef('');
+  const recognitionRef  = useRef(null);
+  const transcriptRef   = useRef('');
+  const sendMessageRef  = useRef(null);
+  const silenceTimerRef = useRef(null);
+  const listeningRef    = useRef(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -89,14 +101,7 @@ export default function App() {
 
     setMessages((prev) => [...prev, { id: generateId(), role: 'user', content: text }]);
 
-    try {
-      let sid = sessionId;
-      if (!sid) {
-        const session = await createSession(userId);
-        sid = session.id;
-        setSessionId(sid);
-      }
-
+    const streamWithSession = async (sid) => {
       const botMsgId = generateId();
       let botBuffer = '';
       let botCreated = false;
@@ -117,6 +122,30 @@ export default function App() {
           }
         }
       }
+    };
+
+    try {
+      let sid = sessionId;
+      if (!sid) {
+        const session = await createSession(userId);
+        sid = session.id;
+        setSessionId(sid);
+      }
+
+      try {
+        await streamWithSession(sid);
+      } catch (err) {
+        // Session was lost (instance recycled) — transparently create a new one and retry
+        if (err.message?.includes('404') || err.message?.toLowerCase().includes('session not found')) {
+          const session = await createSession(userId);
+          sid = session.id;
+          setSessionId(sid);
+          fullTextRef.current = '';
+          await streamWithSession(sid);
+        } else {
+          throw err;
+        }
+      }
 
       const parsed = parseInsights(fullTextRef.current);
       if (Object.keys(parsed).length) setInsights(parsed);
@@ -127,6 +156,91 @@ export default function App() {
       setStreaming(false);
     }
   }, [sessionId, userId, streaming]);
+
+  // Keep stable refs so voice callbacks never close over stale values
+  useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
+  useEffect(() => { listeningRef.current = listening; }, [listening]);
+
+  const toggleListening = useCallback(() => {
+    if (!HAS_SPEECH) return;
+
+    if (listening) {
+      clearTimeout(silenceTimerRef.current);
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = new SR();
+    // iOS Safari does not support continuous mode — it stops after ~5s;
+    // we restart onend instead (see below)
+    rec.continuous = !IS_IOS;
+    rec.interimResults = true;
+    rec.lang = 'en-GB';
+
+    rec.onstart = () => {
+      transcriptRef.current = '';
+      setListening(true);
+      listeningRef.current = true;
+      setInput('');
+    };
+
+    rec.onresult = (e) => {
+      const text = Array.from(e.results).map((r) => r[0].transcript).join('');
+      transcriptRef.current = text;
+      setInput(text);
+
+      // Reset 2-second silence timer on every new speech chunk
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = setTimeout(() => {
+        rec.stop();
+      }, 2000);
+    };
+
+    rec.onend = () => {
+      clearTimeout(silenceTimerRef.current);
+      // On iOS, restart if the user hasn't spoken yet — Safari auto-stops after ~5s
+      if (IS_IOS && listeningRef.current && !transcriptRef.current.trim()) {
+        try { rec.start(); return; } catch (_) {}
+      }
+      setListening(false);
+      listeningRef.current = false;
+      const text = transcriptRef.current.trim();
+      if (text) {
+        sendMessageRef.current(text);
+        setInput('');
+        transcriptRef.current = '';
+      }
+    };
+
+    rec.onerror = (e) => {
+      clearTimeout(silenceTimerRef.current);
+      setListening(false);
+      listeningRef.current = false;
+      if (e.error === 'not-allowed' || e.error === 'service-not-available') {
+        setMessages((prev) => [...prev, {
+          id: generateId(),
+          role: 'error',
+          content: 'Microphone access denied. Please allow microphone permission in your browser settings and try again.',
+        }]);
+      } else if (e.error !== 'no-speech') {
+        console.warn('SpeechRecognition error:', e.error);
+      }
+    };
+
+    recognitionRef.current = rec;
+    try {
+      rec.start();
+    } catch (_err) {
+      setListening(false);
+      listeningRef.current = false;
+      setMessages((prev) => [...prev, {
+        id: generateId(),
+        role: 'error',
+        content: 'Could not start voice input. Please check microphone permissions and try again.',
+      }]);
+    }
+  }, [listening]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -208,16 +322,38 @@ export default function App() {
           </div>
         )}
 
-        <form className="input-form" onSubmit={handleSubmit}>
+        <form className={`input-form${listening ? ' input-form--listening' : ''}`} onSubmit={handleSubmit}>
           <input
             ref={inputRef}
             className="chat-input"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about savings, products, spending or your financial health…"
+            onChange={(e) => { setInput(e.target.value); }}
+            placeholder={listening ? 'Listening… speak now' : 'Ask about savings, products, spending or your financial health…'}
             disabled={streaming}
             autoFocus
           />
+          {HAS_SPEECH && (
+            <button
+              type="button"
+              className={`mic-btn${listening ? ' mic-btn--active' : ''}`}
+              onClick={toggleListening}
+              disabled={streaming}
+              aria-label={listening ? 'Stop recording' : 'Voice input'}
+            >
+              {listening ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor"/>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="8" y1="22" x2="16" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              )}
+            </button>
+          )}
           <button
             type="submit"
             className={`send-btn${streaming ? ' send-btn--busy' : ''}`}
@@ -248,9 +384,9 @@ function Welcome() {
       <div className="welcome-logo-wrap">
         <LloydsLogo size="lg" />
       </div>
-      <h1 className="welcome-title">Hi, I'm your Lloyds Bank<br />AI assistant</h1>
+      <h1 className="welcome-title">Hi, I'm your Lloyds Bank AI assistant</h1>
       <p className="welcome-sub">
-        I can help you find the right savings account, review your spending,<br />
+        I can help you find the right savings account, review your spending,
         check your financial health, and explore Lloyds products.
       </p>
       <div className="welcome-note">

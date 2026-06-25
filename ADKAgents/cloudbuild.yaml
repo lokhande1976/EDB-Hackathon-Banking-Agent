@@ -1,0 +1,135 @@
+substitutions:
+  _IMAGE: us-central1-docker.pkg.dev/ltc-ipnihack-prj-11/agent-repo/agent:latest
+  _PROJECT: ltc-ipnihack-prj-11
+  _SERVICE: agent-service
+  _REGION_US: us-central1
+  _REGION_IN: asia-south1
+  # Pass real API key via --substitutions when triggering manually, or via trigger config:
+  #   gcloud builds submit --substitutions=_GOOGLE_API_KEY=AIza...
+  _GOOGLE_API_KEY: ""
+
+steps:
+
+  # ── 1. Build frontend (into workspace so tests can access assets) ─────────
+  - id: build-frontend
+    name: node:20-slim
+    entrypoint: bash
+    args:
+      - -c
+      - cd frontend && npm install --silent && npm run build
+    waitFor: ["-"]
+
+  # ── 2. Build Docker image ─────────────────────────────────────────────────
+  - id: build-image
+    name: gcr.io/cloud-builders/docker
+    args: [build, -t, "$_IMAGE", .]
+    waitFor: ["-"]
+
+  # ── 3. Run structural tests (in-process, no LLM calls) ───────────────────
+  #    Uses a Python container with uv so deps match pyproject.toml exactly.
+  - id: test-structural
+    name: python:3.14-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        pip install uv --quiet
+        uv sync --frozen --group dev
+        uv run pytest tests/test_api.py -v --tb=short -x
+    env:
+      - SESSION_DB_PATH=/tmp/pytest_sessions.db
+      - TRACE_TO_CLOUD=false
+      - GEMINI_MODEL=gemini-2.5-flash
+      - GOOGLE_API_KEY=$_GOOGLE_API_KEY
+    waitFor: [build-frontend, build-image]
+
+  # ── 4. Push image (only after tests pass) ────────────────────────────────
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, "$_IMAGE"]
+    waitFor: [test-structural]
+
+  # ── 5a. Deploy to us-central1 ─────────────────────────────────────────────
+  - id: deploy-us
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - $_SERVICE
+      - --image=$_IMAGE
+      - --region=$_REGION_US
+      - --project=$_PROJECT
+      - --allow-unauthenticated
+      - --memory=4Gi
+      - --cpu=2
+      - --port=8080
+      - --min-instances=1
+      - --max-instances=20
+      - --concurrency=20
+      - --execution-environment=gen2
+      - --set-env-vars=GOOGLE_API_KEY=$_GOOGLE_API_KEY,GEMINI_MODEL=gemini-2.5-flash,GOOGLE_CLOUD_PROJECT=$_PROJECT,TRACE_TO_CLOUD=false,LOG_LLM_CONTENT=true,COST_GRANULARITY=session,BQ_DATASET=
+    waitFor: [push]
+
+  # ── 5b. Deploy to asia-south1 (Mumbai — nearest to India) ─────────────────
+  - id: deploy-india
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - $_SERVICE
+      - --image=$_IMAGE
+      - --region=$_REGION_IN
+      - --project=$_PROJECT
+      - --allow-unauthenticated
+      - --memory=4Gi
+      - --cpu=2
+      - --port=8080
+      - --min-instances=1
+      - --max-instances=20
+      - --concurrency=20
+      - --execution-environment=gen2
+      - --set-env-vars=GOOGLE_API_KEY=$_GOOGLE_API_KEY,GEMINI_MODEL=gemini-2.5-flash,GOOGLE_CLOUD_PROJECT=$_PROJECT,TRACE_TO_CLOUD=false,LOG_LLM_CONTENT=true,COST_GRANULARITY=session,BQ_DATASET=
+    waitFor: [push]
+
+  # ── 6. API smoke test + integration tests ────────────────────────────────
+  - id: smoke-test
+    name: python:3.13-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        pip install httpx pytest --quiet
+        TEST_BASE_URL=https://agent-service-577303767450.$_REGION_US.run.app \
+          python -m pytest tests/test_integration.py -v --tb=short -x \
+            --alluredir=allure-results \
+            -k "reachable or session_create"
+    waitFor: [deploy-us, deploy-india]
+
+  # ── 7. Playwright E2E tests (headless Chromium, live service) ────────────
+  #    Uses the official Playwright image which has browsers pre-installed.
+  - id: test-playwright
+    name: mcr.microsoft.com/playwright/python:v1.52.0-jammy
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        pip install uv --quiet
+        uv sync --frozen --group dev
+        uv run playwright install chromium --with-deps
+        TEST_BASE_URL=https://agent-service-577303767450.$_REGION_US.run.app/ui \
+          uv run pytest tests/test_playwright.py \
+            -v --tb=short \
+            --alluredir=allure-results \
+            -k "load or status or chip or mode_c or mode_b or mode_a or typing or new_chat or mobile"
+    waitFor: [deploy-us, deploy-india]
+
+images:
+  - $_IMAGE
+
+options:
+  logging: CLOUD_LOGGING_ONLY
