@@ -70,7 +70,7 @@ def vertex_vector_search(query: str) -> str:
         full_context = "\n\n---\n\n".join(context_blocks)
 
         # Step 3: Generate a grounded answer using Gemini with the retrieved context
-        model = GenerativeModel("gemini-2.5-flash")
+        model = GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001"))
 
         prompt = f"""
                 You are a Lloyds Bank Virtual Assistant. Using the provided context, answer the question: '{query}'.

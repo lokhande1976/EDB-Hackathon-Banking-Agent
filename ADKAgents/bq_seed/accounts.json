@@ -1,9 +1,26 @@
-{"account_id":"A001","customer_id":"C001","product_type":"Current Account","balance":2450.75}
-{"account_id":"A002","customer_id":"C001","product_type":"Savings Account","balance":12000.00}
-{"account_id":"A003","customer_id":"C002","product_type":"Current Account","balance":850.20}
-{"account_id":"A004","customer_id":"C002","product_type":"ISA","balance":5500.00}
-{"account_id":"A005","customer_id":"C003","product_type":"Current Account","balance":3100.50}
-{"account_id":"A006","customer_id":"C004","product_type":"Current Account","balance":420.10}
-{"account_id":"A007","customer_id":"C004","product_type":"Mortgage","balance":-185000.00}
-{"account_id":"A008","customer_id":"C005","product_type":"Current Account","balance":6780.00}
-{"account_id":"A009","customer_id":"C005","product_type":"Savings Account","balance":9200.00}
+{"account_id":"A001","customer_id":"C001","product_type":"Current Account","account_type":"current","opened_date":"2015-06-01","balance":2450.75,"interest_rate":0.00}
+{"account_id":"A002","customer_id":"C001","product_type":"Savings Account","account_type":"savings","opened_date":"2018-01-15","balance":12000.00,"interest_rate":2.50}
+{"account_id":"A003","customer_id":"C002","product_type":"Current Account","account_type":"current","opened_date":"2010-03-22","balance":850.20,"interest_rate":0.00}
+{"account_id":"A004","customer_id":"C002","product_type":"ISA","account_type":"isa","opened_date":"2012-04-06","balance":38500.00,"interest_rate":3.10}
+{"account_id":"A005","customer_id":"C003","product_type":"Current Account","account_type":"current","opened_date":"2020-08-01","balance":3100.50,"interest_rate":0.00}
+{"account_id":"A006","customer_id":"C004","product_type":"Current Account","account_type":"current","opened_date":"2005-11-20","balance":420.10,"interest_rate":0.00}
+{"account_id":"A007","customer_id":"C004","product_type":"Savings Account","account_type":"savings","opened_date":"2006-03-01","balance":45000.00,"interest_rate":2.10}
+{"account_id":"A008","customer_id":"C005","product_type":"Current Account","account_type":"current","opened_date":"2019-02-14","balance":6780.00,"interest_rate":0.00}
+{"account_id":"A009","customer_id":"C005","product_type":"Savings Account","account_type":"savings","opened_date":"2021-07-01","balance":22500.00,"interest_rate":3.20}
+{"account_id":"A010","customer_id":"C006","product_type":"Student Account","account_type":"current","opened_date":"2022-09-01","balance":340.00,"interest_rate":0.00}
+{"account_id":"A011","customer_id":"C007","product_type":"Current Account","account_type":"current","opened_date":"2008-05-18","balance":8200.00,"interest_rate":0.00}
+{"account_id":"A012","customer_id":"C007","product_type":"ISA","account_type":"isa","opened_date":"2010-04-05","balance":62000.00,"interest_rate":3.50}
+{"account_id":"A013","customer_id":"C008","product_type":"Current Account","account_type":"current","opened_date":"2016-09-30","balance":1950.00,"interest_rate":0.00}
+{"account_id":"A014","customer_id":"C008","product_type":"Savings Account","account_type":"savings","opened_date":"2019-01-01","balance":8500.00,"interest_rate":2.80}
+{"account_id":"A015","customer_id":"C009","product_type":"Current Account","account_type":"current","opened_date":"1995-04-10","balance":3400.00,"interest_rate":0.00}
+{"account_id":"A016","customer_id":"C009","product_type":"Savings Account","account_type":"savings","opened_date":"1998-06-01","balance":78000.00,"interest_rate":2.50}
+{"account_id":"A017","customer_id":"C010","product_type":"Current Account","account_type":"current","opened_date":"2021-06-01","balance":1200.00,"interest_rate":0.00}
+{"account_id":"A018","customer_id":"C011","product_type":"Current Account","account_type":"current","opened_date":"2012-02-28","balance":4500.00,"interest_rate":0.00}
+{"account_id":"A019","customer_id":"C011","product_type":"Savings Account","account_type":"savings","opened_date":"2015-10-01","balance":15000.00,"interest_rate":2.80}
+{"account_id":"A020","customer_id":"C012","product_type":"Current Account","account_type":"current","opened_date":"2023-04-01","balance":680.00,"interest_rate":0.00}
+{"account_id":"A021","customer_id":"C013","product_type":"Current Account","account_type":"current","opened_date":"2009-07-15","balance":5200.00,"interest_rate":0.00}
+{"account_id":"A022","customer_id":"C013","product_type":"ISA","account_type":"isa","opened_date":"2011-04-06","balance":29000.00,"interest_rate":3.10}
+{"account_id":"A023","customer_id":"C014","product_type":"Current Account","account_type":"current","opened_date":"2000-01-10","balance":6800.00,"interest_rate":0.00}
+{"account_id":"A024","customer_id":"C014","product_type":"Savings Account","account_type":"savings","opened_date":"2002-05-01","balance":120000.00,"interest_rate":2.20}
+{"account_id":"A025","customer_id":"C015","product_type":"Current Account","account_type":"current","opened_date":"2018-03-01","balance":2100.00,"interest_rate":0.00}
+{"account_id":"A026","customer_id":"C015","product_type":"Savings Account","account_type":"savings","opened_date":"2020-01-01","balance":5800.00,"interest_rate":2.50}
