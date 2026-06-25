@@ -15,7 +15,7 @@ load_dotenv()
 from google.adk.tools import google_search as _google_search
 
 _web_search_agent = Agent(
-    name="web_search_agent",
+    name="stock_market_web_search",
     model=get_model(),
     description="Searches the internet for live stock prices, market news, and financial data.",
     instruction=(
