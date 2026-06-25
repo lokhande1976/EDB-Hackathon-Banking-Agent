@@ -3,29 +3,56 @@ dataset: ${BQ_DATASET}
 tables:
   - name: customers
     schema:
-      - {name: customer_id, type: STRING}
-      - {name: name,        type: STRING}
-      - {name: dob,         type: STRING}
-      - {name: postcode,    type: STRING}
-      - {name: address,     type: STRING}
-      - {name: age,         type: INTEGER}
-      - {name: gender,      type: STRING}
-      - {name: phone,       type: STRING}
+      - {name: customer_id,         type: STRING}
+      - {name: name,                type: STRING}
+      - {name: dob,                 type: STRING}
+      - {name: postcode,            type: STRING}
+      - {name: address,             type: STRING}
+      - {name: age,                 type: INTEGER}
+      - {name: gender,              type: STRING}
+      - {name: phone,               type: STRING}
+      - {name: email,               type: STRING}
+      - {name: occupation,          type: STRING}
+      - {name: annual_income_band,  type: STRING}
+      - {name: life_stage,          type: STRING}
     seed_file: bq_seed/customers.json
 
   - name: accounts
     schema:
-      - {name: account_id,   type: STRING}
-      - {name: customer_id,  type: STRING}
-      - {name: product_type, type: STRING}
-      - {name: balance,      type: FLOAT}
+      - {name: account_id,    type: STRING}
+      - {name: customer_id,   type: STRING}
+      - {name: product_type,  type: STRING}
+      - {name: account_type,  type: STRING}
+      - {name: opened_date,   type: STRING}
+      - {name: balance,       type: FLOAT}
+      - {name: interest_rate, type: FLOAT}
     seed_file: bq_seed/accounts.json
 
   - name: transactions
     schema:
-      - {name: account_id,  type: STRING}
-      - {name: description, type: STRING}
-      - {name: amount,      type: FLOAT}
-      - {name: type,        type: STRING}
-      - {name: date,        type: STRING}
+      - {name: transaction_id, type: STRING}
+      - {name: account_id,     type: STRING}
+      - {name: description,    type: STRING}
+      - {name: amount,         type: FLOAT}
+      - {name: type,           type: STRING}
+      - {name: category,       type: STRING}
+      - {name: date,           type: STRING}
     seed_file: bq_seed/transactions.json
+
+  - name: products
+    schema:
+      - {name: product_id,         type: STRING}
+      - {name: product_name,       type: STRING}
+      - {name: product_type,       type: STRING}
+      - {name: interest_rate_pa,   type: FLOAT}
+      - {name: monthly_fee,        type: FLOAT}
+      - {name: min_deposit,        type: FLOAT}
+      - {name: max_balance,        type: FLOAT}
+      - {name: access_type,        type: STRING}
+      - {name: notice_period_days, type: INTEGER}
+      - {name: term_months,        type: INTEGER}
+      - {name: features,           type: STRING}
+      - {name: target_segment,     type: STRING}
+      - {name: min_age,            type: INTEGER}
+      - {name: is_active,          type: BOOLEAN}
+    seed_file: bq_seed/products.json

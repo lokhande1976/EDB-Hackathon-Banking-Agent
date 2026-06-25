@@ -122,8 +122,8 @@ def after_model_callback(
         agent_name = getattr(getattr(callback_context, "agent", None), "name", "bank_agent") or "bank_agent"
 
     model_name = getattr(
-        getattr(callback_context, "agent", None), "model", "gemini-2.5-flash"
-    ) or "gemini-2.5-flash"
+        getattr(callback_context, "agent", None), "model", "gemini-2.0-flash"
+    ) or "gemini-2.0-flash"
     inp_price, out_price = get_pricing(model_name)
     cost_usd = (input_tokens * inp_price + output_tokens * out_price) / 1_000_000
 

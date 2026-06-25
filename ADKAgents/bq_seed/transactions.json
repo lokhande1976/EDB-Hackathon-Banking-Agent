@@ -1,19 +1,125 @@
-{"account_id":"A001","description":"Supermarket","amount":-45.80,"type":"debit","date":"2026-06-12"}
-{"account_id":"A001","description":"Salary - Acme Corp","amount":3200.00,"type":"credit","date":"2026-06-01"}
-{"account_id":"A001","description":"Streaming Service","amount":-17.99,"type":"debit","date":"2026-05-28"}
-{"account_id":"A001","description":"Electricity Bill","amount":-82.50,"type":"debit","date":"2026-05-20"}
-{"account_id":"A001","description":"Salary - Acme Corp","amount":3200.00,"type":"credit","date":"2026-05-01"}
-{"account_id":"A002","description":"Interest Payment","amount":24.50,"type":"credit","date":"2026-06-01"}
-{"account_id":"A003","description":"Coffee Shop","amount":-4.75,"type":"debit","date":"2026-06-13"}
-{"account_id":"A003","description":"Payroll - City Council","amount":2800.00,"type":"credit","date":"2026-06-01"}
-{"account_id":"A003","description":"Online Retailer","amount":-32.99,"type":"debit","date":"2026-05-30"}
-{"account_id":"A003","description":"Council Tax","amount":-145.00,"type":"debit","date":"2026-05-15"}
-{"account_id":"A005","description":"Freelance Invoice","amount":1500.00,"type":"credit","date":"2026-06-10"}
-{"account_id":"A005","description":"Rent","amount":-950.00,"type":"debit","date":"2026-06-01"}
-{"account_id":"A005","description":"Gym Membership","amount":-35.00,"type":"debit","date":"2026-05-25"}
-{"account_id":"A006","description":"Pension","amount":1200.00,"type":"credit","date":"2026-06-01"}
-{"account_id":"A006","description":"Supermarket","amount":-67.30,"type":"debit","date":"2026-06-09"}
-{"account_id":"A008","description":"Salary - EDB Corp","amount":4500.00,"type":"credit","date":"2026-06-01"}
-{"account_id":"A008","description":"Mortgage Payment","amount":-1200.00,"type":"debit","date":"2026-06-03"}
-{"account_id":"A008","description":"Holiday Booking","amount":-850.00,"type":"debit","date":"2026-05-22"}
-{"account_id":"A009","description":"ISA Transfer","amount":500.00,"type":"credit","date":"2026-06-01"}
+{"transaction_id":"T001","account_id":"A001","description":"Salary - Acme Corp","amount":3800.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T002","account_id":"A001","description":"Salary - Acme Corp","amount":3800.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T003","account_id":"A001","description":"Salary - Acme Corp","amount":3800.00,"type":"credit","category":"income","date":"2026-04-01"}
+{"transaction_id":"T004","account_id":"A001","description":"Tesco Superstore","amount":-95.40,"type":"debit","category":"groceries","date":"2026-06-15"}
+{"transaction_id":"T005","account_id":"A001","description":"Tesco Superstore","amount":-88.70,"type":"debit","category":"groceries","date":"2026-06-07"}
+{"transaction_id":"T006","account_id":"A001","description":"Waitrose","amount":-62.30,"type":"debit","category":"groceries","date":"2026-05-24"}
+{"transaction_id":"T007","account_id":"A001","description":"Tesco Superstore","amount":-91.10,"type":"debit","category":"groceries","date":"2026-05-10"}
+{"transaction_id":"T008","account_id":"A001","description":"Netflix","amount":-17.99,"type":"debit","category":"entertainment","date":"2026-06-02"}
+{"transaction_id":"T009","account_id":"A001","description":"Spotify","amount":-11.99,"type":"debit","category":"entertainment","date":"2026-06-03"}
+{"transaction_id":"T010","account_id":"A001","description":"EDF Energy","amount":-82.50,"type":"debit","category":"utilities","date":"2026-06-10"}
+{"transaction_id":"T011","account_id":"A001","description":"Thames Water","amount":-38.00,"type":"debit","category":"utilities","date":"2026-06-10"}
+{"transaction_id":"T012","account_id":"A001","description":"Costa Coffee","amount":-6.75,"type":"debit","category":"dining","date":"2026-06-14"}
+{"transaction_id":"T013","account_id":"A001","description":"Zara","amount":-89.99,"type":"debit","category":"shopping","date":"2026-05-20"}
+{"transaction_id":"T014","account_id":"A001","description":"School Dinner Money","amount":-65.00,"type":"debit","category":"education","date":"2026-06-01"}
+{"transaction_id":"T015","account_id":"A002","description":"Savings Interest","amount":24.50,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T016","account_id":"A002","description":"Savings Transfer from A001","amount":200.00,"type":"credit","category":"transfer","date":"2026-06-05"}
+{"transaction_id":"T017","account_id":"A003","description":"Payroll - City Council","amount":4200.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T018","account_id":"A003","description":"Payroll - City Council","amount":4200.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T019","account_id":"A003","description":"Waitrose","amount":-78.30,"type":"debit","category":"groceries","date":"2026-06-12"}
+{"transaction_id":"T020","account_id":"A003","description":"Council Tax","amount":-185.00,"type":"debit","category":"utilities","date":"2026-06-01"}
+{"transaction_id":"T021","account_id":"A003","description":"Restaurant","amount":-55.40,"type":"debit","category":"dining","date":"2026-06-09"}
+{"transaction_id":"T022","account_id":"A003","description":"National Rail","amount":-89.50,"type":"debit","category":"transport","date":"2026-06-08"}
+{"transaction_id":"T023","account_id":"A003","description":"Amazon","amount":-34.99,"type":"debit","category":"shopping","date":"2026-05-28"}
+{"transaction_id":"T024","account_id":"A003","description":"BP Petrol","amount":-65.00,"type":"debit","category":"transport","date":"2026-05-18"}
+{"transaction_id":"T025","account_id":"A005","description":"Freelance Invoice - DesignCo","amount":2200.00,"type":"credit","category":"income","date":"2026-06-10"}
+{"transaction_id":"T026","account_id":"A005","description":"Freelance Invoice - StartupXYZ","amount":1800.00,"type":"credit","category":"income","date":"2026-05-15"}
+{"transaction_id":"T027","account_id":"A005","description":"Freelance Invoice - AgencyABC","amount":2500.00,"type":"credit","category":"income","date":"2026-04-20"}
+{"transaction_id":"T028","account_id":"A005","description":"Rent","amount":-950.00,"type":"debit","category":"rent_mortgage","date":"2026-06-01"}
+{"transaction_id":"T029","account_id":"A005","description":"Rent","amount":-950.00,"type":"debit","category":"rent_mortgage","date":"2026-05-01"}
+{"transaction_id":"T030","account_id":"A005","description":"Aldi","amount":-52.10,"type":"debit","category":"groceries","date":"2026-06-13"}
+{"transaction_id":"T031","account_id":"A005","description":"Gym Membership - PureGym","amount":-25.99,"type":"debit","category":"health","date":"2026-06-01"}
+{"transaction_id":"T032","account_id":"A005","description":"Adobe Creative Cloud","amount":-54.99,"type":"debit","category":"software","date":"2026-06-01"}
+{"transaction_id":"T033","account_id":"A005","description":"EE Mobile","amount":-35.00,"type":"debit","category":"utilities","date":"2026-06-05"}
+{"transaction_id":"T034","account_id":"A006","description":"State Pension","amount":1100.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T035","account_id":"A006","description":"State Pension","amount":1100.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T036","account_id":"A006","description":"Lidl","amount":-45.80,"type":"debit","category":"groceries","date":"2026-06-09"}
+{"transaction_id":"T037","account_id":"A006","description":"British Gas","amount":-76.00,"type":"debit","category":"utilities","date":"2026-06-10"}
+{"transaction_id":"T038","account_id":"A006","description":"Pharmacy","amount":-18.50,"type":"debit","category":"health","date":"2026-06-07"}
+{"transaction_id":"T039","account_id":"A007","description":"Savings Interest","amount":78.75,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T040","account_id":"A008","description":"Salary - EDB Corp","amount":5200.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T041","account_id":"A008","description":"Salary - EDB Corp","amount":5200.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T042","account_id":"A008","description":"Salary - EDB Corp","amount":5200.00,"type":"credit","category":"income","date":"2026-04-01"}
+{"transaction_id":"T043","account_id":"A008","description":"Tesco Extra","amount":-120.40,"type":"debit","category":"groceries","date":"2026-06-14"}
+{"transaction_id":"T044","account_id":"A008","description":"Mortgage Payment","amount":-1650.00,"type":"debit","category":"rent_mortgage","date":"2026-06-03"}
+{"transaction_id":"T045","account_id":"A008","description":"Mortgage Payment","amount":-1650.00,"type":"debit","category":"rent_mortgage","date":"2026-05-03"}
+{"transaction_id":"T046","account_id":"A008","description":"Holiday - Booking.com","amount":-1200.00,"type":"debit","category":"travel","date":"2026-05-22"}
+{"transaction_id":"T047","account_id":"A008","description":"Disney+","amount":-4.99,"type":"debit","category":"entertainment","date":"2026-06-05"}
+{"transaction_id":"T048","account_id":"A008","description":"Deliveroo","amount":-32.50,"type":"debit","category":"dining","date":"2026-06-11"}
+{"transaction_id":"T049","account_id":"A008","description":"John Lewis","amount":-245.00,"type":"debit","category":"shopping","date":"2026-05-15"}
+{"transaction_id":"T050","account_id":"A009","description":"Monthly Savings Transfer","amount":500.00,"type":"credit","category":"transfer","date":"2026-06-05"}
+{"transaction_id":"T051","account_id":"A009","description":"Savings Interest","amount":59.00,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T052","account_id":"A010","description":"Student Loan","amount":900.00,"type":"credit","category":"income","date":"2026-01-01"}
+{"transaction_id":"T053","account_id":"A010","description":"Part-time Job - Cafe","amount":450.00,"type":"credit","category":"income","date":"2026-06-15"}
+{"transaction_id":"T054","account_id":"A010","description":"Part-time Job - Cafe","amount":420.00,"type":"credit","category":"income","date":"2026-05-15"}
+{"transaction_id":"T055","account_id":"A010","description":"Aldi","amount":-38.20,"type":"debit","category":"groceries","date":"2026-06-12"}
+{"transaction_id":"T056","account_id":"A010","description":"Spotify Student","amount":-5.99,"type":"debit","category":"entertainment","date":"2026-06-01"}
+{"transaction_id":"T057","account_id":"A010","description":"Wetherspoons","amount":-22.50,"type":"debit","category":"dining","date":"2026-06-13"}
+{"transaction_id":"T058","account_id":"A010","description":"Amazon Textbooks","amount":-45.00,"type":"debit","category":"education","date":"2026-01-10"}
+{"transaction_id":"T059","account_id":"A011","description":"NHS Salary","amount":7500.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T060","account_id":"A011","description":"NHS Salary","amount":7500.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T061","account_id":"A011","description":"Waitrose","amount":-145.00,"type":"debit","category":"groceries","date":"2026-06-08"}
+{"transaction_id":"T062","account_id":"A011","description":"Waitrose","amount":-138.50,"type":"debit","category":"groceries","date":"2026-05-10"}
+{"transaction_id":"T063","account_id":"A011","description":"Private School Fees","amount":-1200.00,"type":"debit","category":"education","date":"2026-06-01"}
+{"transaction_id":"T064","account_id":"A011","description":"Holiday - British Airways","amount":-3500.00,"type":"debit","category":"travel","date":"2026-04-15"}
+{"transaction_id":"T065","account_id":"A011","description":"Bupa Health Insurance","amount":-185.00,"type":"debit","category":"health","date":"2026-06-01"}
+{"transaction_id":"T066","account_id":"A011","description":"Mortgage Payment","amount":-2100.00,"type":"debit","category":"rent_mortgage","date":"2026-06-03"}
+{"transaction_id":"T067","account_id":"A011","description":"Uber Eats","amount":-48.50,"type":"debit","category":"dining","date":"2026-06-10"}
+{"transaction_id":"T068","account_id":"A012","description":"ISA Interest","amount":178.75,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T069","account_id":"A013","description":"Salary - Smith & Partners","amount":3600.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T070","account_id":"A013","description":"Salary - Smith & Partners","amount":3600.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T071","account_id":"A013","description":"Sainsburys","amount":-82.60,"type":"debit","category":"groceries","date":"2026-06-11"}
+{"transaction_id":"T072","account_id":"A013","description":"Costa Coffee","amount":-4.80,"type":"debit","category":"dining","date":"2026-06-13"}
+{"transaction_id":"T073","account_id":"A013","description":"Mortgage Payment","amount":-880.00,"type":"debit","category":"rent_mortgage","date":"2026-06-03"}
+{"transaction_id":"T074","account_id":"A013","description":"Sky Broadband & TV","amount":-55.00,"type":"debit","category":"utilities","date":"2026-06-05"}
+{"transaction_id":"T075","account_id":"A013","description":"Transfer to Savings A014","amount":-300.00,"type":"debit","category":"transfer","date":"2026-06-05"}
+{"transaction_id":"T076","account_id":"A014","description":"Transfer from A013","amount":300.00,"type":"credit","category":"transfer","date":"2026-06-05"}
+{"transaction_id":"T077","account_id":"A014","description":"Savings Interest","amount":19.83,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T078","account_id":"A015","description":"State Pension","amount":1150.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T079","account_id":"A015","description":"State Pension","amount":1150.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T080","account_id":"A015","description":"Marks & Spencer Food","amount":-68.40,"type":"debit","category":"groceries","date":"2026-06-09"}
+{"transaction_id":"T081","account_id":"A015","description":"British Gas","amount":-92.00,"type":"debit","category":"utilities","date":"2026-06-10"}
+{"transaction_id":"T082","account_id":"A015","description":"Garden Centre","amount":-45.00,"type":"debit","category":"shopping","date":"2026-05-25"}
+{"transaction_id":"T083","account_id":"A015","description":"Dentist","amount":-95.00,"type":"debit","category":"health","date":"2026-06-14"}
+{"transaction_id":"T084","account_id":"A016","description":"Savings Interest","amount":162.50,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T085","account_id":"A017","description":"Salary - DataInsights Ltd","amount":2100.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T086","account_id":"A017","description":"Salary - DataInsights Ltd","amount":2100.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T087","account_id":"A017","description":"Aldi","amount":-42.30,"type":"debit","category":"groceries","date":"2026-06-10"}
+{"transaction_id":"T088","account_id":"A017","description":"Rent","amount":-700.00,"type":"debit","category":"rent_mortgage","date":"2026-06-01"}
+{"transaction_id":"T089","account_id":"A017","description":"TfL Oyster","amount":-85.00,"type":"debit","category":"transport","date":"2026-06-01"}
+{"transaction_id":"T090","account_id":"A017","description":"Deliveroo","amount":-18.90,"type":"debit","category":"dining","date":"2026-06-09"}
+{"transaction_id":"T091","account_id":"A018","description":"Salary - Corp HR","amount":4800.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T092","account_id":"A018","description":"Salary - Corp HR","amount":4800.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T093","account_id":"A018","description":"Morrisons","amount":-105.30,"type":"debit","category":"groceries","date":"2026-06-07"}
+{"transaction_id":"T094","account_id":"A018","description":"Mortgage Payment","amount":-1050.00,"type":"debit","category":"rent_mortgage","date":"2026-06-03"}
+{"transaction_id":"T095","account_id":"A018","description":"Kids Activities","amount":-180.00,"type":"debit","category":"education","date":"2026-06-01"}
+{"transaction_id":"T096","account_id":"A018","description":"Transfer to Savings A019","amount":-400.00,"type":"debit","category":"transfer","date":"2026-06-10"}
+{"transaction_id":"T097","account_id":"A019","description":"Transfer from A018","amount":400.00,"type":"credit","category":"transfer","date":"2026-06-10"}
+{"transaction_id":"T098","account_id":"A019","description":"Savings Interest","amount":35.00,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T099","account_id":"A020","description":"Apprenticeship Wage","amount":1200.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T100","account_id":"A020","description":"Apprenticeship Wage","amount":1200.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T101","account_id":"A020","description":"Asda","amount":-35.60,"type":"debit","category":"groceries","date":"2026-06-12"}
+{"transaction_id":"T102","account_id":"A020","description":"Bus Pass","amount":-55.00,"type":"debit","category":"transport","date":"2026-06-01"}
+{"transaction_id":"T103","account_id":"A020","description":"Xbox Game Pass","amount":-14.99,"type":"debit","category":"entertainment","date":"2026-06-05"}
+{"transaction_id":"T104","account_id":"A021","description":"Salary - Education Dept","amount":4500.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T105","account_id":"A021","description":"Salary - Education Dept","amount":4500.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T106","account_id":"A021","description":"Sainsburys","amount":-95.20,"type":"debit","category":"groceries","date":"2026-06-06"}
+{"transaction_id":"T107","account_id":"A021","description":"Mortgage Payment","amount":-780.00,"type":"debit","category":"rent_mortgage","date":"2026-06-03"}
+{"transaction_id":"T108","account_id":"A021","description":"Virgin Atlantic","amount":-890.00,"type":"debit","category":"travel","date":"2026-05-10"}
+{"transaction_id":"T109","account_id":"A021","description":"Transfer to ISA A022","amount":-1000.00,"type":"debit","category":"transfer","date":"2026-06-05"}
+{"transaction_id":"T110","account_id":"A022","description":"ISA Interest","amount":74.92,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T111","account_id":"A022","description":"ISA Transfer from A021","amount":1000.00,"type":"credit","category":"transfer","date":"2026-06-05"}
+{"transaction_id":"T112","account_id":"A023","description":"State Pension","amount":1100.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T113","account_id":"A023","description":"Pension Income","amount":1400.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T114","account_id":"A023","description":"Morrisons","amount":-72.40,"type":"debit","category":"groceries","date":"2026-06-10"}
+{"transaction_id":"T115","account_id":"A023","description":"Scottish Power","amount":-88.00,"type":"debit","category":"utilities","date":"2026-06-10"}
+{"transaction_id":"T116","account_id":"A023","description":"Travel Insurance","amount":-45.00,"type":"debit","category":"health","date":"2026-06-01"}
+{"transaction_id":"T117","account_id":"A024","description":"Savings Interest","amount":220.00,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T118","account_id":"A025","description":"NHS Salary","amount":3100.00,"type":"credit","category":"income","date":"2026-06-01"}
+{"transaction_id":"T119","account_id":"A025","description":"NHS Salary","amount":3100.00,"type":"credit","category":"income","date":"2026-05-01"}
+{"transaction_id":"T120","account_id":"A025","description":"Aldi","amount":-58.90,"type":"debit","category":"groceries","date":"2026-06-08"}
+{"transaction_id":"T121","account_id":"A025","description":"Rent","amount":-875.00,"type":"debit","category":"rent_mortgage","date":"2026-06-01"}
+{"transaction_id":"T122","account_id":"A025","description":"Gym - Anytime Fitness","amount":-29.99,"type":"debit","category":"health","date":"2026-06-01"}
+{"transaction_id":"T123","account_id":"A025","description":"Transfer to Savings A026","amount":-200.00,"type":"debit","category":"transfer","date":"2026-06-10"}
+{"transaction_id":"T124","account_id":"A026","description":"Savings Interest","amount":12.08,"type":"credit","category":"interest","date":"2026-06-01"}
+{"transaction_id":"T125","account_id":"A026","description":"Transfer from A025","amount":200.00,"type":"credit","category":"transfer","date":"2026-06-10"}
