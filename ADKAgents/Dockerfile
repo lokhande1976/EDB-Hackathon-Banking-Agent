@@ -1,30 +1,38 @@
-# Use a lightweight Python image
-FROM python:3.11-slim
+# ── Stage 1: Build the React frontend ──────────────────────────────────
+FROM node:20-slim AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
 
-# Install uv binary directly
+# ── Stage 2: Python ADK application ────────────────────────────────────
+FROM python:3.14-slim
+
+# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Set the working directory
 WORKDIR /app
 
-# Enable bytecode compilation for faster startup
 ENV UV_COMPILE_BYTECODE=1
-# Ensure output is sent directly to logs
 ENV PYTHONUNBUFFERED=1
 
-# Copy project files
-COPY pyproject.toml uv.lock main.py .python-version ./
+# Install Python dependencies first (layer caching)
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen --no-dev
+
+# Copy application source
+COPY main.py ./
 COPY bank_agent ./bank_agent/
 
-# Install dependencies into the system environment
-# --system tells uv to install without a virtualenv (ideal for containers)
-#RUN uv pip install --system --requirement pyproject.toml
-RUN uv sync --frozen --no-dev 
+# Copy SQLite database (local fallback when BQ_DATASET is empty)
+COPY bank_data.db ./
+
+# Copy built React frontend from Stage 1
+COPY --from=frontend-builder /frontend/dist ./frontend/dist/
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Expose the ADK port
 EXPOSE 8080
 
-# Run your agent
-CMD ["uvicorn","main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

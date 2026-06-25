@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS products (
     interest_rate_pa REAL, monthly_fee REAL, min_deposit REAL,
     max_balance REAL, access_type TEXT, notice_period_days INTEGER,
     term_months INTEGER, features TEXT, target_segment TEXT,
-    min_age INTEGER, is_active INTEGER
+    min_age INTEGER, is_active INTEGER, product_url TEXT
 );
 """)
 
