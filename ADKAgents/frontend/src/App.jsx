@@ -42,8 +42,8 @@ const PRODUCT_DB = {
 
 function parseInsights(text) {
   const insights = {};
-  const scoreMatch = text.match(/\b(\d{1,3})\/100\b/);
-  if (scoreMatch) insights.wellbeingScore = parseInt(scoreMatch[1]);
+  const scoreMatch = text.match(/(\d{1,3}(?:\.\d+)?)\/100/);
+  if (scoreMatch) insights.wellbeingScore = Math.round(parseFloat(scoreMatch[1]));
   const ratingMatch = text.match(/\b(Excellent|Good|Fair|Poor|Strong|Moderate|Developing)\b/i);
   if (ratingMatch) insights.wellbeingRating = ratingMatch[1];
   const products = [];

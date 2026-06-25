@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 
 from dotenv import load_dotenv
 from google.cloud import bigquery
@@ -11,6 +12,7 @@ PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "")
 ECOMMERCE_DATASET = os.getenv("ECOMMERCE_DATASET", "ecommerce_data")
 
 
+@lru_cache(maxsize=1)
 def _bq_client() -> bigquery.Client:
     return bigquery.Client(project=PROJECT_ID if PROJECT_ID else None)
 

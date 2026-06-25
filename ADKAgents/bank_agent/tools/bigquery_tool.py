@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 
 from dotenv import load_dotenv
 from google.cloud import bigquery
@@ -10,6 +11,11 @@ load_dotenv()
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "")
 BQ_DATASET = os.getenv("BQ_DATASET", "")
 ECOMMERCE_DATASET = os.getenv("ECOMMERCE_DATASET", "ecommerce_data")
+
+
+@lru_cache(maxsize=1)
+def _bq_client() -> bigquery.Client:
+    return bigquery.Client(project=PROJECT_ID if PROJECT_ID else None)
 
 
 @traced_tool
@@ -37,8 +43,7 @@ def run_bigquery_query(sql: str) -> str:
             return f"ERROR: Write operations are not permitted. Only SELECT queries are allowed."
 
     try:
-        # If PROJECT_ID is empty, it falls back to the default credential project
-        client = bigquery.Client(project=PROJECT_ID if PROJECT_ID else None)
+        client = _bq_client()
 
         resolved_sql = sql.replace("{dataset}", BQ_DATASET).replace("{ecommerce_dataset}", ECOMMERCE_DATASET)
 
