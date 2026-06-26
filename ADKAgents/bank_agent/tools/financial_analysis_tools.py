@@ -448,8 +448,13 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
                     SELECT account_id, product_type, balance
                     FROM `{BQ_DATASET}.accounts` WHERE customer_id = @cid
                 ),
+                -- Aggregate transactions into a single row so the cross-join
+                -- never collapses to 0 rows when a customer has no transactions.
                 txn AS (
-                    SELECT amount, type FROM `{BQ_DATASET}.transactions`
+                    SELECT
+                        COALESCE(ROUND(SUM(CASE WHEN type='credit' THEN amount ELSE 0 END)/6, 2), 0) AS avg_monthly_income_txn,
+                        COALESCE(ROUND(SUM(CASE WHEN type='debit'  THEN ABS(amount) ELSE 0 END)/6, 2), 0) AS avg_monthly_spend
+                    FROM `{BQ_DATASET}.transactions`
                     WHERE account_id IN (SELECT account_id FROM accts)
                 ),
                 loans AS (
@@ -490,8 +495,8 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
                 )
                 SELECT
                     p.monthly_income, p.employment_type, p.risk_appetite, p.dependents,
-                    ROUND(SUM(CASE WHEN t.type='credit' THEN t.amount ELSE 0 END)/6, 2) AS avg_monthly_income_txn,
-                    ROUND(SUM(CASE WHEN t.type='debit' THEN ABS(t.amount) ELSE 0 END)/6, 2) AS avg_monthly_spend,
+                    t.avg_monthly_income_txn,
+                    t.avg_monthly_spend,
                     (SELECT ROUND(SUM(balance), 2) FROM accts) AS total_bank_balance,
                     l.total_emi, l.total_loan_outstanding, l.loan_count,
                     c.total_min_due, c.total_cc_outstanding, c.total_credit_limit,
@@ -499,14 +504,12 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
                     f.total_fd,
                     ins.has_life, ins.has_health
                 FROM txn t, profile p, loans l, cc c, inv i, fd f, ins
-                GROUP BY p.monthly_income, p.employment_type, p.risk_appetite, p.dependents,
-                         l.total_emi, l.total_loan_outstanding, l.loan_count,
-                         c.total_min_due, c.total_cc_outstanding, c.total_credit_limit,
-                         i.total_invested, i.total_inv_value, i.total_sip,
-                         f.total_fd, ins.has_life, ins.has_health
             """
             params = [bigquery.ScalarQueryParameter("cid", "STRING", customer_id)]
-            row = _run_query(sql, params).iloc[0]
+            result_df = _run_query(sql, params)
+            if result_df.empty:
+                return f"No financial data found for customer {customer_id}."
+            row = result_df.iloc[0]
 
             profile_income   = float(row["monthly_income"] or 0)
             txn_income       = float(row["avg_monthly_income_txn"] or 0)
