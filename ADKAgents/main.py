@@ -3,10 +3,16 @@
 
 
 import os
+import sqlite3
+import uuid
+from datetime import date
+
 import uvicorn
 from fastapi import Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
+from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from google.adk.cli.fast_api import get_fast_api_app
 
@@ -102,6 +108,112 @@ async def obs_reset():
     """Clear all recorded observability data."""
     store.reset()
     return {"status": "ok", "message": "Observability data cleared"}
+
+
+# ── Account opening endpoint ──────────────────────────────────────────────────
+
+class ApplyRequest(BaseModel):
+    product_name: str
+    customer_id: str | None = None
+    customer_name: str | None = None
+
+
+_CREATE_APPS_TABLE = """
+    CREATE TABLE IF NOT EXISTS applications (
+        application_id TEXT PRIMARY KEY,
+        customer_id    TEXT,
+        customer_name  TEXT,
+        product_name   TEXT NOT NULL,
+        product_type   TEXT,
+        interest_rate  REAL,
+        status         TEXT DEFAULT 'submitted',
+        applied_date   TEXT,
+        product_url    TEXT
+    )
+"""
+
+_DB_PATH = os.path.join(AGENT_DIR, "bank_data.db")
+
+
+@app.post("/apply")
+async def apply_for_account(req: ApplyRequest):
+    """Direct account-opening endpoint — no agent roundtrip needed.
+
+    Validates the product exists, inserts an application record and returns
+    the application reference.
+    """
+    try:
+        conn = sqlite3.connect(_DB_PATH)
+        conn.execute(_CREATE_APPS_TABLE)
+        conn.commit()
+
+        # Look up product
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT product_name, product_type, interest_rate_pa, product_url "
+            "FROM products WHERE LOWER(product_name) = LOWER(?)",
+            [req.product_name],
+        )
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return JSONResponse(
+                status_code=404,
+                content={"status": "error", "error": f"Product '{req.product_name}' not found."},
+            )
+        pname, ptype, rate, purl = row
+
+        application_id = f"APP-{uuid.uuid4().hex[:8].upper()}"
+        applied_date = date.today().isoformat()
+        customer_name = req.customer_name or "Account Holder"
+
+        cursor.execute(
+            """INSERT INTO applications
+                   (application_id, customer_id, customer_name, product_name,
+                    product_type, interest_rate, status, applied_date, product_url)
+               VALUES (?, ?, ?, ?, ?, ?, 'submitted', ?, ?)""",
+            [application_id, req.customer_id or "", customer_name,
+             pname, ptype, rate or 0.0, applied_date, purl or ""],
+        )
+        conn.commit()
+        conn.close()
+
+        return {
+            "status": "success",
+            "application_id": application_id,
+            "product_name": pname,
+            "product_type": ptype,
+            "interest_rate_pa": rate or 0.0,
+            "customer_id": req.customer_id or "",
+            "customer_name": customer_name,
+            "applied_date": applied_date,
+            "product_url": purl or "",
+        }
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"status": "error", "error": str(exc)})
+
+
+@app.get("/applications")
+async def get_applications(customer_id: str | None = None):
+    """List submitted account applications, optionally filtered by customer_id."""
+    try:
+        conn = sqlite3.connect(_DB_PATH)
+        conn.execute(_CREATE_APPS_TABLE)
+        conn.commit()
+        cursor = conn.cursor()
+        if customer_id:
+            cursor.execute(
+                "SELECT * FROM applications WHERE customer_id = ? ORDER BY applied_date DESC",
+                [customer_id],
+            )
+        else:
+            cursor.execute("SELECT * FROM applications ORDER BY applied_date DESC")
+        cols = [d[0] for d in cursor.description]
+        rows = [dict(zip(cols, r)) for r in cursor.fetchall()]
+        conn.close()
+        return {"status": "success", "applications": rows}
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"status": "error", "error": str(exc)})
 
 
 if __name__ == "__main__":

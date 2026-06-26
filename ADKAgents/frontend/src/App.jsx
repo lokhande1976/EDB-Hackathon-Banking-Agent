@@ -23,21 +23,44 @@ const QUICK_ACTIONS = [
 ];
 
 const PRODUCT_DB = {
-  'Club Lloyds Monthly Saver': { rate: '6.25% AER', access: 'Monthly deposits', fee: 'No fee', color: '#006A4D' },
-  'Monthly Saver':             { rate: '5.25% AER', access: 'Monthly deposits', fee: 'No fee', color: '#009660' },
-  'Easy Saver':                { rate: '1.40% AER', access: 'Instant access',   fee: 'No fee', color: '#4CAF74' },
-  'Cash ISA':                  { rate: '3.20% AER', access: 'Instant access',   fee: 'No fee', color: '#10B981' },
-  'Fixed Rate Saver 1 Year':   { rate: '4.65% AER', access: 'Fixed 1 year',     fee: 'No fee', color: '#F59E0B' },
-  'Fixed Rate Saver 2 Year':   { rate: '4.60% AER', access: 'Fixed 2 years',    fee: 'No fee', color: '#EF4444' },
-  'Club Lloyds Account':       { rate: 'Lifestyle rewards', access: 'Current account', fee: '£3/mo (waivable)', color: '#006A4D' },
-  'Classic Account':           { rate: 'Free banking',      access: 'Current account', fee: 'No fee',           color: '#009660' },
-  'Silver Account':            { rate: 'Travel insurance',  access: 'Current account', fee: '£9.50/mo',         color: '#7BA3CC' },
-  'Gold Account':              { rate: 'Travel + phone',    access: 'Current account', fee: '£12.50/mo',        color: '#F59E0B' },
-  'Cashback Credit Card':      { rate: '0.25% cashback',   access: 'Credit card', fee: 'No fee',   color: '#006A4D' },
-  'Balance Transfer Card':     { rate: '0% for 20 months', access: 'Credit card', fee: 'No fee',   color: '#4CAF74' },
-  'Personal Loan':             { rate: '6.9% APR',         access: 'Loan',        fee: 'No fee',   color: '#009660' },
-  'Stocks and Shares ISA':     { rate: 'Tax-free growth',  access: 'Investment',  fee: 'From £40/yr', color: '#10B981' },
-  'First Time Buyer Mortgage': { rate: '4.89% fixed',      access: 'Mortgage',    fee: 'No product fee option', color: '#006A4D' },
+  // Savings
+  'Club Lloyds Monthly Saver':  { rate: '6.25% AER', access: 'Monthly deposits', fee: 'No fee',           color: '#006A4D', type: 'savings' },
+  'Monthly Saver':              { rate: '5.25% AER', access: 'Monthly deposits', fee: 'No fee',           color: '#009660', type: 'savings' },
+  'Easy Saver':                 { rate: '1.40% AER', access: 'Instant access',   fee: 'No fee',           color: '#4CAF74', type: 'savings' },
+  'Cash ISA':                   { rate: '3.20% AER', access: 'Instant access',   fee: 'No fee',           color: '#10B981', type: 'savings' },
+  'Fixed Rate Saver 1 Year':    { rate: '4.65% AER', access: 'Fixed 1 year',     fee: 'No fee',           color: '#F59E0B', type: 'savings' },
+  'Fixed Rate Saver 2 Year':    { rate: '4.60% AER', access: 'Fixed 2 years',    fee: 'No fee',           color: '#EF4444', type: 'savings' },
+  'Fixed Rate Cash ISA 1 Year': { rate: '4.40% AER', access: 'Fixed 1 year',     fee: 'No fee',           color: '#F59E0B', type: 'savings' },
+  'Fixed Rate Cash ISA 2 Year': { rate: '4.25% AER', access: 'Fixed 2 years',    fee: 'No fee',           color: '#EF4444', type: 'savings' },
+  '95 Day Notice Saver':        { rate: '4.00% AER', access: '95-day notice',    fee: 'No fee',           color: '#9333EA', type: 'savings' },
+  'Smart Start':                { rate: '2.50% AER', access: 'Children\'s saver', fee: 'No fee',          color: '#06B6D4', type: 'savings' },
+  'Young Saver':                { rate: '3.50% AER', access: 'Instant access',   fee: 'No fee',           color: '#06B6D4', type: 'savings' },
+  // Current accounts
+  'Club Lloyds Account':        { rate: 'Lifestyle rewards', access: 'Current account', fee: '£3/mo (waivable)', color: '#006A4D', type: 'current_account' },
+  'Classic Account':            { rate: 'Free banking',      access: 'Current account', fee: 'No fee',           color: '#009660', type: 'current_account' },
+  'Silver Account':             { rate: 'Travel insurance',  access: 'Current account', fee: '£9.50/mo',         color: '#7BA3CC', type: 'current_account' },
+  'Gold Account':               { rate: 'Travel + phone',    access: 'Current account', fee: '£12.50/mo',        color: '#F59E0B', type: 'current_account' },
+  'Platinum Account':           { rate: 'Premium benefits',  access: 'Current account', fee: '£21/mo',           color: '#9333EA', type: 'current_account' },
+  'Under 19s Account':          { rate: 'Free account',      access: 'Ages 11–17',       fee: 'No fee',           color: '#06B6D4', type: 'current_account' },
+  'Club Lloyds Under 19s':      { rate: 'Lifestyle benefits',access: 'Ages 11–17',       fee: 'No fee',           color: '#006A4D', type: 'current_account' },
+  'Student Account':            { rate: '0% overdraft',      access: 'Full-time students',fee: 'No fee',          color: '#7BA3CC', type: 'current_account' },
+  'Graduate Account':           { rate: '0% overdraft',      access: 'Recent graduates', fee: 'No fee',           color: '#F59E0B', type: 'current_account' },
+  // Credit cards
+  'Cashback Credit Card':       { rate: '0.25% cashback',    access: 'Credit card',  fee: 'No fee',    color: '#006A4D', type: 'credit_card' },
+  'Balance Transfer Card':      { rate: '0% for 20 months',  access: 'Credit card',  fee: 'No fee',    color: '#4CAF74', type: 'credit_card' },
+  'Purchase Credit Card':       { rate: '0% for 20 months',  access: 'Credit card',  fee: 'No fee',    color: '#009660', type: 'credit_card' },
+  // Loans
+  'Personal Loan':              { rate: '6.9% APR',          access: 'Loan',         fee: 'No fee',    color: '#009660', type: 'loan' },
+  'Home Improvement Loan':      { rate: '7.9% APR',          access: 'Loan',         fee: 'No fee',    color: '#F59E0B', type: 'loan' },
+  // Investments
+  'Stocks and Shares ISA':      { rate: 'Tax-free growth',   access: 'Investment',   fee: 'From £40/yr', color: '#10B981', type: 'investment' },
+  'Ready-Made Investments':     { rate: 'Managed funds',     access: 'Investment',   fee: 'Annual charge', color: '#4CAF74', type: 'investment' },
+  // Mortgages
+  'First Time Buyer Mortgage':  { rate: '4.89% fixed',       access: 'Mortgage',     fee: 'No product fee option', color: '#006A4D', type: 'mortgage' },
+  'Remortgage Fixed Rate':      { rate: '4.69% fixed',       access: 'Mortgage',     fee: 'No arrangement fee option', color: '#009660', type: 'mortgage' },
+  // Insurance
+  'Home Insurance':             { rate: 'Buildings & contents', access: 'Insurance', fee: 'Monthly premium', color: '#7BA3CC', type: 'insurance' },
+  'Life Insurance':             { rate: 'From £10/month',    access: 'Insurance',    fee: 'Monthly premium', color: '#EF4444', type: 'insurance' },
 };
 
 function parseInsights(text) {
@@ -61,14 +84,17 @@ const HAS_SPEECH = typeof window !== 'undefined' &&
 const IS_IOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
 export default function App() {
-  const [userId]    = useState(() => `user_${generateId()}`);
-  const [sessionId, setSessionId] = useState(null);
-  const [messages,  setMessages]  = useState([]);
-  const [streaming, setStreaming] = useState(false);
-  const [input,     setInput]     = useState('');
-  const [insights,  setInsights]  = useState({});
-  const [error,     setError]     = useState(null);
-  const [listening, setListening] = useState(false);
+  const [userId]       = useState(() => `user_${generateId()}`);
+  const [sessionId,    setSessionId]    = useState(null);
+  const [messages,     setMessages]     = useState([]);
+  const [streaming,    setStreaming]     = useState(false);
+  const [input,        setInput]         = useState('');
+  const [insights,     setInsights]      = useState({});
+  const [error,        setError]         = useState(null);
+  const [listening,    setListening]     = useState(false);
+  const [customerId,   setCustomerId]    = useState(null);
+  const [customerName, setCustomerName]  = useState(null);
+  const [applyModal,   setApplyModal]    = useState(null);
 
   const messagesEndRef  = useRef(null);
   const inputRef        = useRef(null);
@@ -83,11 +109,32 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streaming]);
 
+  // Extract customer ID from user messages (e.g. "C1001", "c998")
+  useEffect(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role !== 'user') continue;
+      const m = messages[i].content.match(/\b([Cc]\d{3,6})\b/);
+      if (m) { setCustomerId(m[1].toUpperCase()); break; }
+    }
+  }, [messages]);
+
+  // Extract customer name from bot greeting "Hi Emily 👋"
+  useEffect(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role !== 'bot') continue;
+      const m = messages[i].content.match(/Hi ([A-Z][a-zA-Z]+)\s*👋/);
+      if (m) { setCustomerName(m[1]); break; }
+    }
+  }, [messages]);
+
   const resetSession = useCallback(() => {
     setSessionId(null);
     setMessages([]);
     setInsights({});
     setError(null);
+    setCustomerId(null);
+    setCustomerName(null);
+    setApplyModal(null);
     fullTextRef.current = '';
   }, []);
 
@@ -292,7 +339,7 @@ export default function App() {
                     <WellbeingGauge score={insights.wellbeingScore} rating={insights.wellbeingRating} />
                   )}
                   {insights.products?.map((p) => (
-                    <ProductCard key={p.name} product={p} />
+                    <ProductCard key={p.name} product={p} onOpen={() => setApplyModal({ product: p })} />
                   ))}
                 </div>
               )}
@@ -372,6 +419,15 @@ export default function App() {
         </form>
         <p className="input-hint">Lloyds Bank AI · Powered by Google Gemini · For guidance only — not financial advice</p>
       </div>
+
+      {applyModal && (
+        <AccountOpenModal
+          product={applyModal.product}
+          customerId={customerId}
+          customerName={customerName}
+          onClose={() => setApplyModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -514,7 +570,7 @@ function WellbeingGauge({ score, rating }) {
   );
 }
 
-function ProductCard({ product }) {
+function ProductCard({ product, onOpen }) {
   return (
     <div className="card-product" style={{ '--pc': product.color }}>
       <div className="card-product-name">{product.name}</div>
@@ -522,6 +578,178 @@ function ProductCard({ product }) {
       <div className="card-product-tags">
         <span className="ptag">{product.access}</span>
         <span className="ptag ptag--green">{product.fee}</span>
+      </div>
+      <button className="btn-open-account" onClick={onOpen}>
+        Open account
+      </button>
+    </div>
+  );
+}
+
+const TYPE_LABELS = {
+  savings: 'Savings Account',
+  current_account: 'Current Account',
+  credit_card: 'Credit Card',
+  loan: 'Loan',
+  investment: 'Investment',
+  mortgage: 'Mortgage',
+  insurance: 'Insurance',
+};
+
+function AccountOpenModal({ product, customerId, customerName, onClose }) {
+  const [step, setStep]       = useState('confirm'); // 'confirm' | 'loading' | 'success' | 'error'
+  const [result, setResult]   = useState(null);
+  const [errMsg, setErrMsg]   = useState('');
+
+  const handleConfirm = async () => {
+    setStep('loading');
+    try {
+      const res = await fetch('/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_name:  product.name,
+          customer_id:   customerId  || null,
+          customer_name: customerName || 'Account Holder',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.status === 'error') {
+        setErrMsg(data.error || 'Something went wrong. Please try again.');
+        setStep('error');
+      } else {
+        setResult(data);
+        setStep('success');
+      }
+    } catch (e) {
+      setErrMsg(e.message);
+      setStep('error');
+    }
+  };
+
+  const typeLabel = TYPE_LABELS[product.type] || 'Product';
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+
+        {step === 'confirm' && (
+          <>
+            <div className="modal-header">
+              <div className="modal-icon" style={{ background: `${product.color}22`, color: product.color }}>
+                {product.type === 'savings' ? '💰' :
+                 product.type === 'current_account' ? '🏦' :
+                 product.type === 'credit_card' ? '💳' :
+                 product.type === 'mortgage' ? '🏠' :
+                 product.type === 'investment' ? '📈' :
+                 product.type === 'insurance' ? '🛡️' : '📄'}
+              </div>
+              <div>
+                <div className="modal-type">{typeLabel}</div>
+                <div className="modal-title">{product.name}</div>
+              </div>
+            </div>
+
+            <div className="modal-product-detail" style={{ borderColor: product.color }}>
+              <div className="modal-rate" style={{ color: product.color }}>{product.rate}</div>
+              <div className="modal-tags">
+                <span className="ptag">{product.access}</span>
+                <span className="ptag ptag--green">{product.fee}</span>
+              </div>
+            </div>
+
+            <div className="modal-applicant">
+              <div className="modal-section-label">Applicant</div>
+              <div className="modal-applicant-row">
+                <span className="modal-applicant-avatar">
+                  {customerName ? customerName[0].toUpperCase() : '?'}
+                </span>
+                <div>
+                  <div className="modal-applicant-name">{customerName || 'Account Holder'}</div>
+                  {customerId && <div className="modal-applicant-id">ID: {customerId}</div>}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-details-grid">
+              <div className="modal-detail-item">
+                <span className="modal-detail-label">Sort code</span>
+                <span className="modal-detail-value">30-00-00</span>
+              </div>
+              <div className="modal-detail-item">
+                <span className="modal-detail-label">Opening date</span>
+                <span className="modal-detail-value">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              </div>
+              <div className="modal-detail-item">
+                <span className="modal-detail-label">Bank</span>
+                <span className="modal-detail-value">Lloyds Bank plc</span>
+              </div>
+              <div className="modal-detail-item">
+                <span className="modal-detail-label">FSCS protected</span>
+                <span className="modal-detail-value">Up to £85,000</span>
+              </div>
+            </div>
+
+            <p className="modal-disclaimer">
+              This is a demonstration. By confirming you agree to Lloyds Bank's
+              terms and conditions for this product.
+            </p>
+
+            <div className="modal-actions">
+              <button className="btn-modal-cancel" onClick={onClose}>Cancel</button>
+              <button className="btn-modal-confirm" style={{ background: product.color }} onClick={handleConfirm}>
+                Confirm &amp; Open Account →
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'loading' && (
+          <div className="modal-state-center">
+            <div className="modal-spinner" />
+            <p>Processing your application…</p>
+          </div>
+        )}
+
+        {step === 'success' && result && (
+          <div className="modal-state-center">
+            <div className="modal-success-ring" style={{ borderColor: product.color }}>
+              <span className="modal-success-tick">✓</span>
+            </div>
+            <h2 className="modal-success-title">Application Submitted!</h2>
+            <p className="modal-success-sub">Your new {product.name} is being set up.</p>
+            <div className="modal-ref-box">
+              <div className="modal-ref-label">Reference number</div>
+              <div className="modal-ref-value">{result.application_id}</div>
+            </div>
+            <div className="modal-success-meta">
+              <span>Product: <strong>{result.product_name}</strong></span>
+              {result.interest_rate_pa > 0 && <span>Rate: <strong>{result.interest_rate_pa}% AER</strong></span>}
+              <span>Date: <strong>{result.applied_date}</strong></span>
+            </div>
+            <p className="modal-success-note">
+              A confirmation has been sent to your registered email address.
+              Your account will be ready within 1 working day.
+            </p>
+            <button className="btn-modal-confirm" style={{ background: product.color }} onClick={onClose}>
+              Done
+            </button>
+          </div>
+        )}
+
+        {step === 'error' && (
+          <div className="modal-state-center">
+            <div className="modal-error-icon">⚠</div>
+            <h2 className="modal-success-title">Application Failed</h2>
+            <p className="modal-success-sub">{errMsg}</p>
+            <div className="modal-actions">
+              <button className="btn-modal-cancel" onClick={onClose}>Close</button>
+              <button className="btn-modal-confirm" style={{ background: product.color }}
+                onClick={() => setStep('confirm')}>Try again</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

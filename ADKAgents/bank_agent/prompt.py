@@ -24,6 +24,7 @@ MODE A — Customer ID already provided (e.g. C001):
   3. product_recommendation_agent → only if asked about products
   4. financial_wellbeing_agent    → only if asked about financial health or investments
   5. stock_market_agent           → stock prices, portfolio, market questions
+  6. account_opening_agent        → when customer explicitly says "open", "apply for", or "sign up for" a specific product
 
 MODE B — PERSONAL query but NO customer ID given:
   Do NOT guess a customer ID. Do NOT call any data agent.

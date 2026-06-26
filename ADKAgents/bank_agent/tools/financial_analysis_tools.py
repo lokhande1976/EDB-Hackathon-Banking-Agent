@@ -302,18 +302,22 @@ def get_product_recommendations(
     access_type: str = "any",
     max_monthly_fee: float = 0.0,
     min_interest_rate: float = 0.0,
-    product_type: str = "savings",
+    product_type: str = "any",
 ) -> str:
-    """Query the product catalogue and return matching banking products.
+    """Query the product catalogue and return matching banking products with full feature details.
+
+    Each product is returned with its complete feature list so the caller can match
+    specific features to the customer's financial profile when writing recommendations.
 
     Args:
         access_type: 'instant', 'notice', 'fixed', or 'any'.
-        max_monthly_fee: Maximum monthly fee in GBP (0 = no fee).
-        min_interest_rate: Minimum AER interest rate.
-        product_type: 'savings', 'isa', 'current', or 'any'.
+        max_monthly_fee: Maximum monthly fee in GBP (0 = no fee products only).
+        min_interest_rate: Minimum AER/APR rate filter (0 = no filter).
+        product_type: 'savings', 'current_account', 'credit_card', 'loan',
+                      'investment', 'mortgage', 'insurance', or 'any'.
 
     Returns:
-        A table of matching products with key features.
+        Structured product records, each with a bullet-pointed feature list.
     """
     try:
         conditions = ["is_active = 1"]
@@ -338,9 +342,9 @@ def get_product_recommendations(
 
         # Products table lives only in bank_data.db (not in BQ BANK_DATA dataset)
         sql = f"""
-            SELECT product_name, product_type, interest_rate_pa AS aer_pct,
-                monthly_fee AS monthly_fee_gbp, min_deposit AS min_deposit_gbp,
-                access_type, features, target_segment
+            SELECT product_name, product_type, interest_rate_pa,
+                   monthly_fee, min_deposit, access_type,
+                   features, target_segment, product_url
             FROM products
             WHERE {where}
             ORDER BY interest_rate_pa DESC
@@ -351,7 +355,35 @@ def get_product_recommendations(
 
         if df.empty:
             return "No products found matching those criteria."
-        return df.to_string(index=False)
+
+        # Format each product as a structured block with bullet-pointed features
+        # so the LLM can match individual features to the customer's profile.
+        blocks = []
+        for _, row in df.iterrows():
+            raw_features = str(row.get("features", "") or "")
+            feature_bullets = "\n".join(
+                f"    • {f.strip()}"
+                for f in raw_features.split("|")
+                if f.strip()
+            )
+            rate = float(row["interest_rate_pa"] or 0)
+            fee = float(row["monthly_fee"] or 0)
+            min_dep = float(row["min_deposit"] or 0)
+            rate_str = f"{rate}% AER" if rate > 0 else "No interest rate"
+            fee_str = f"£{fee}/month" if fee > 0 else "No monthly fee"
+            dep_str = f"£{min_dep:,.0f}" if min_dep > 0 else "No minimum"
+            blocks.append(
+                f"PRODUCT: {row['product_name']}\n"
+                f"  Type:        {row['product_type']}\n"
+                f"  Rate:        {rate_str}\n"
+                f"  Monthly fee: {fee_str}\n"
+                f"  Min deposit: {dep_str}\n"
+                f"  Access:      {row['access_type']}\n"
+                f"  Target:      {row['target_segment']}\n"
+                f"  URL:         {row.get('product_url', '')}\n"
+                f"  Features:\n{feature_bullets}"
+            )
+        return "\n\n".join(blocks)
     except Exception as e:
         return f"Error fetching product recommendations: {str(e)}"
 

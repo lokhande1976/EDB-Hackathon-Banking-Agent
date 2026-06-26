@@ -16,6 +16,7 @@ from .agents import (
     financial_wellbeing_agent,
     stock_market_agent,
     web_search_agent,
+    account_opening_agent,
 )
 
 load_dotenv()
@@ -40,6 +41,7 @@ root_agent = Agent(
         AgentTool(agent=financial_wellbeing_agent),
         AgentTool(agent=stock_market_agent),
         AgentTool(agent=web_search_agent),
+        AgentTool(agent=account_opening_agent),
     ],
     before_model_callback=before_model_callback,
     after_model_callback=after_model_callback,
