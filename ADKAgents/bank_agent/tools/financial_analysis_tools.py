@@ -534,7 +534,15 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
             monthly_obligations = total_emi + total_min_due + total_sip
             free_cash_flow = avg_monthly_income - avg_monthly_spend - monthly_obligations
             savings_rate = round(free_cash_flow / avg_monthly_income * 100, 1) if avg_monthly_income else 0
-            months_cushion = round(total_bank_balance / avg_monthly_spend, 1) if avg_monthly_spend else 0
+
+            # Total wealth = bank accounts + fixed deposits + investment value
+            total_wealth_all = total_bank_balance + total_fd + inv_value
+
+            # Use liquid bank balance for cushion; fall back to FD+investments
+            # when the customer holds all savings in non-current accounts
+            liquid_for_cushion = total_bank_balance if total_bank_balance > 0 else total_fd
+            spend_for_cushion  = avg_monthly_spend  if avg_monthly_spend  > 0 else (avg_monthly_income * 0.5)
+            months_cushion = round(liquid_for_cushion / spend_for_cushion, 1) if spend_for_cushion else 0
 
             # ── 1. Cash Flow & Savings (25 pts) ──────────────────────────────
             cash_flow_score = min(25, max(0, savings_rate / 20 * 25))
@@ -571,21 +579,22 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
 Dimension Breakdown:
   Cash Flow & Savings: {cash_flow_score:.1f}/25  (£{free_cash_flow:,.0f}/month free, {savings_rate}% savings rate)
   Debt Health:         {debt_score:.1f}/25  (DTI {dti:.0f}%, {loan_count} loan(s), CC utilisation {cc_util:.0f}%)
-  Liquid Safety Net:   {cushion_score:.1f}/20  ({months_cushion:.1f} months of expenses in bank)
+  Liquid Safety Net:   {cushion_score:.1f}/20  ({months_cushion:.1f} months of expenses covered)
   Savings & Invest.:   {investment_score:.1f}/20  (£{total_wealth:,.0f} in FDs + investments, {wealth_to_income:.1f}× annual income)
   Insurance:           {insurance_score:.1f}/10  ({'Life ✓' if has_life else 'Life ✗'}  {'Health ✓' if has_health else 'Health ✗'})
 
 Key Metrics:
-  Monthly Income:      £{avg_monthly_income:>12,.0f}  [{employment_type}]
-  Monthly Expenses:    £{avg_monthly_spend:>12,.0f}
-  Loan EMIs + CC due:  £{monthly_obligations:>12,.0f}
-  Free Cash Flow:      £{free_cash_flow:>12,.0f}
-  Bank Balance:        £{total_bank_balance:>12,.0f}
-  Investments:         £{inv_value:>12,.0f}  (gain: £{investment_gain:+,.0f})
-  Fixed Deposits:      £{total_fd:>12,.0f}
-  Loans Outstanding:   £{loan_outstanding:>12,.0f}
-  CC Outstanding:      £{cc_outstanding:>12,.0f}
-  Risk Appetite:       {risk_appetite}
+  Total Savings & Wealth: £{total_wealth_all:>12,.0f}  (bank + FDs + investments)
+  Monthly Income:         £{avg_monthly_income:>12,.0f}  [{employment_type}]
+  Monthly Expenses:       £{avg_monthly_spend:>12,.0f}
+  Loan EMIs + CC due:     £{monthly_obligations:>12,.0f}
+  Free Cash Flow:         £{free_cash_flow:>12,.0f}
+  Current/Savings Accts:  £{total_bank_balance:>12,.0f}
+  Fixed Deposits:         £{total_fd:>12,.0f}
+  Investments:            £{inv_value:>12,.0f}  (gain: £{investment_gain:+,.0f})
+  Loans Outstanding:      £{loan_outstanding:>12,.0f}
+  CC Outstanding:         £{cc_outstanding:>12,.0f}
+  Risk Appetite:          {risk_appetite}
 """
 
         income_score  = min(25, months_with_income / 6 * 25)
