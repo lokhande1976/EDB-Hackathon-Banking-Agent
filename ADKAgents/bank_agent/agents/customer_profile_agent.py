@@ -15,9 +15,10 @@ Steps: customer_id_search → customer_database_search. Use run_bigquery_query o
 
 Return ONLY these facts, nothing else:
 - Name · Age · Life stage · Occupation · Income band
-- Accounts: for each → type, balance, interest rate
-- Total savings balance · Any idle current account cash (>£500 with no savings account)
-- Product gaps: missing ISA / savings account / etc.
+- Accounts: for each → type, balance, interest rate (or "None" if no bank accounts)
+- Total wealth: sum of ALL bank account balances + ALL FD principals + ALL investment current values (never report £0 if the customer has FDs or investments)
+- Any idle current account cash (>£500 with no savings account)
+- Product gaps: missing ISA / savings account / current account / etc.
 
 Rules:
 - Maximum 60 words in your response.

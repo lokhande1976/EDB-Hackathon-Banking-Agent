@@ -1,0 +1,19 @@
+.git
+.claude
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+allure-results
+allure-report
+test-results
+node_modules
+frontend/node_modules
+.env
+.venv
+# bank_data.db is needed by the Dockerfile; exclude only test/temp dbs
+pytest_sessions*.db
+adk_sessions*.db
+bq_seed/.adk
+finetune/data/last_job.json

@@ -448,8 +448,13 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
                     SELECT account_id, product_type, balance
                     FROM `{BQ_DATASET}.accounts` WHERE customer_id = @cid
                 ),
+                -- Aggregate transactions into a single row so the cross-join
+                -- never collapses to 0 rows when a customer has no transactions.
                 txn AS (
-                    SELECT amount, type FROM `{BQ_DATASET}.transactions`
+                    SELECT
+                        COALESCE(ROUND(SUM(CASE WHEN type='credit' THEN amount ELSE 0 END)/6, 2), 0) AS avg_monthly_income_txn,
+                        COALESCE(ROUND(SUM(CASE WHEN type='debit'  THEN ABS(amount) ELSE 0 END)/6, 2), 0) AS avg_monthly_spend
+                    FROM `{BQ_DATASET}.transactions`
                     WHERE account_id IN (SELECT account_id FROM accts)
                 ),
                 loans AS (
@@ -490,8 +495,8 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
                 )
                 SELECT
                     p.monthly_income, p.employment_type, p.risk_appetite, p.dependents,
-                    ROUND(SUM(CASE WHEN t.type='credit' THEN t.amount ELSE 0 END)/6, 2) AS avg_monthly_income_txn,
-                    ROUND(SUM(CASE WHEN t.type='debit' THEN ABS(t.amount) ELSE 0 END)/6, 2) AS avg_monthly_spend,
+                    t.avg_monthly_income_txn,
+                    t.avg_monthly_spend,
                     (SELECT ROUND(SUM(balance), 2) FROM accts) AS total_bank_balance,
                     l.total_emi, l.total_loan_outstanding, l.loan_count,
                     c.total_min_due, c.total_cc_outstanding, c.total_credit_limit,
@@ -499,14 +504,12 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
                     f.total_fd,
                     ins.has_life, ins.has_health
                 FROM txn t, profile p, loans l, cc c, inv i, fd f, ins
-                GROUP BY p.monthly_income, p.employment_type, p.risk_appetite, p.dependents,
-                         l.total_emi, l.total_loan_outstanding, l.loan_count,
-                         c.total_min_due, c.total_cc_outstanding, c.total_credit_limit,
-                         i.total_invested, i.total_inv_value, i.total_sip,
-                         f.total_fd, ins.has_life, ins.has_health
             """
             params = [bigquery.ScalarQueryParameter("cid", "STRING", customer_id)]
-            row = _run_query(sql, params).iloc[0]
+            result_df = _run_query(sql, params)
+            if result_df.empty:
+                return f"No financial data found for customer {customer_id}."
+            row = result_df.iloc[0]
 
             profile_income   = float(row["monthly_income"] or 0)
             txn_income       = float(row["avg_monthly_income_txn"] or 0)
@@ -531,7 +534,15 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
             monthly_obligations = total_emi + total_min_due + total_sip
             free_cash_flow = avg_monthly_income - avg_monthly_spend - monthly_obligations
             savings_rate = round(free_cash_flow / avg_monthly_income * 100, 1) if avg_monthly_income else 0
-            months_cushion = round(total_bank_balance / avg_monthly_spend, 1) if avg_monthly_spend else 0
+
+            # Total wealth = bank accounts + fixed deposits + investment value
+            total_wealth_all = total_bank_balance + total_fd + inv_value
+
+            # Use liquid bank balance for cushion; fall back to FD+investments
+            # when the customer holds all savings in non-current accounts
+            liquid_for_cushion = total_bank_balance if total_bank_balance > 0 else total_fd
+            spend_for_cushion  = avg_monthly_spend  if avg_monthly_spend  > 0 else (avg_monthly_income * 0.5)
+            months_cushion = round(liquid_for_cushion / spend_for_cushion, 1) if spend_for_cushion else 0
 
             # ── 1. Cash Flow & Savings (25 pts) ──────────────────────────────
             cash_flow_score = min(25, max(0, savings_rate / 20 * 25))
@@ -568,21 +579,22 @@ def calculate_financial_wellbeing_score(customer_id: str) -> str:
 Dimension Breakdown:
   Cash Flow & Savings: {cash_flow_score:.1f}/25  (£{free_cash_flow:,.0f}/month free, {savings_rate}% savings rate)
   Debt Health:         {debt_score:.1f}/25  (DTI {dti:.0f}%, {loan_count} loan(s), CC utilisation {cc_util:.0f}%)
-  Liquid Safety Net:   {cushion_score:.1f}/20  ({months_cushion:.1f} months of expenses in bank)
+  Liquid Safety Net:   {cushion_score:.1f}/20  ({months_cushion:.1f} months of expenses covered)
   Savings & Invest.:   {investment_score:.1f}/20  (£{total_wealth:,.0f} in FDs + investments, {wealth_to_income:.1f}× annual income)
   Insurance:           {insurance_score:.1f}/10  ({'Life ✓' if has_life else 'Life ✗'}  {'Health ✓' if has_health else 'Health ✗'})
 
 Key Metrics:
-  Monthly Income:      £{avg_monthly_income:>12,.0f}  [{employment_type}]
-  Monthly Expenses:    £{avg_monthly_spend:>12,.0f}
-  Loan EMIs + CC due:  £{monthly_obligations:>12,.0f}
-  Free Cash Flow:      £{free_cash_flow:>12,.0f}
-  Bank Balance:        £{total_bank_balance:>12,.0f}
-  Investments:         £{inv_value:>12,.0f}  (gain: £{investment_gain:+,.0f})
-  Fixed Deposits:      £{total_fd:>12,.0f}
-  Loans Outstanding:   £{loan_outstanding:>12,.0f}
-  CC Outstanding:      £{cc_outstanding:>12,.0f}
-  Risk Appetite:       {risk_appetite}
+  Total Savings & Wealth: £{total_wealth_all:>12,.0f}  (bank + FDs + investments)
+  Monthly Income:         £{avg_monthly_income:>12,.0f}  [{employment_type}]
+  Monthly Expenses:       £{avg_monthly_spend:>12,.0f}
+  Loan EMIs + CC due:     £{monthly_obligations:>12,.0f}
+  Free Cash Flow:         £{free_cash_flow:>12,.0f}
+  Current/Savings Accts:  £{total_bank_balance:>12,.0f}
+  Fixed Deposits:         £{total_fd:>12,.0f}
+  Investments:            £{inv_value:>12,.0f}  (gain: £{investment_gain:+,.0f})
+  Loans Outstanding:      £{loan_outstanding:>12,.0f}
+  CC Outstanding:         £{cc_outstanding:>12,.0f}
+  Risk Appetite:          {risk_appetite}
 """
 
         income_score  = min(25, months_with_income / 6 * 25)
