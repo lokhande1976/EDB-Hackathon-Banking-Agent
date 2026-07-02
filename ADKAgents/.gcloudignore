@@ -12,6 +12,8 @@ node_modules
 frontend/node_modules
 .env
 .venv
-*.db
+# bank_data.db is needed by the Dockerfile; exclude only test/temp dbs
+pytest_sessions*.db
+adk_sessions*.db
 bq_seed/.adk
 finetune/data/last_job.json
