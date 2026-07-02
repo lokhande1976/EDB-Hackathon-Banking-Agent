@@ -22,3 +22,7 @@ uv.lock
 DataGen/documents/*
 DataGen/*.csv
 *db
+vscode-extension/node_modules/
+vscode-extension/out/
+ADKAgents/vscode-extension/node_modules/
+ADKAgents/vscode-extension/out/

@@ -1,0 +1,62 @@
+{
+  "name": "automation-framework-generator",
+  "displayName": "Automation Framework Generator",
+  "description": "Generate complete test automation frameworks (Java, TypeScript, Python, C#) with Page Objects, CI/CD, Docker, and GitHub Actions — powered by Google ADK + Gemini AI",
+  "version": "1.0.0",
+  "publisher": "mahender-lokhande",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "automation",
+    "playwright",
+    "cypress",
+    "selenium",
+    "testing",
+    "AI",
+    "framework generator"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "automationGenerator.open",
+        "title": "Generate Automation Framework",
+        "category": "Automation",
+        "icon": "$(beaker)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "automationGenerator.open"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Automation Framework Generator",
+      "properties": {
+        "automationGenerator.apiUrl": {
+          "type": "string",
+          "default": "https://agent-service-eguulmisoa-uc.a.run.app",
+          "description": "API endpoint for the automation framework generator service"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npm run compile && npx @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.3.0"
+  }
+}
