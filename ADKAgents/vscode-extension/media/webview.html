@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-{{NONCE}}'; script-src 'nonce-{{NONCE}}';">
+<title>Automation Framework Generator</title>
+<style nonce="{{NONCE}}">
+:root {
+  --bg: #0D1117; --bg2: #161B22; --bg3: #21262D;
+  --border: #30363D; --fg: #E6EDF3; --fg2: #8B949E;
+  --accent: #7C3AED; --accent-l: #9461FB;
+  --ok: #3FB950; --warn: #D29922; --err: #F85149;
+  --java: #B07219; --ts: #3178C6; --py: #3572A5;
+  --cs: #178600; --js: #F1E05A; --rb: #CC342D;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;display:flex;flex-direction:column}
+
+/* ── Header ── */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.hdr-icon{font-size:18px}
+.hdr-title{font-size:14px;font-weight:700;letter-spacing:.01em}
+.hdr-badge{margin-left:auto;font-size:10px;color:var(--fg2);background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:2px 8px}
+
+/* ── Layout ── */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{width:265px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.sec{padding:11px 13px;border-bottom:1px solid var(--border)}
+.sec-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--fg2);margin-bottom:8px}
+
+/* Language grid */
+.lang-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.lang-btn{padding:7px 4px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--fg2);cursor:pointer;text-align:center;font-size:11px;font-weight:600;transition:all .15s;font-family:inherit}
+.lang-btn:hover{border-color:var(--fg2);color:var(--fg)}
+.lang-btn.active.java{border-color:var(--java);color:var(--java);background:rgba(176,114,25,.12)}
+.lang-btn.active.typescript{border-color:var(--ts);color:var(--ts);background:rgba(49,120,198,.12)}
+.lang-btn.active.python{border-color:var(--py);color:var(--py);background:rgba(53,114,165,.12)}
+.lang-btn.active.csharp{border-color:var(--cs);color:var(--cs);background:rgba(23,134,0,.12)}
+.lang-btn.active.javascript{border-color:var(--js);color:var(--js);background:rgba(241,224,90,.10)}
+.lang-btn.active.ruby{border-color:var(--rb);color:var(--rb);background:rgba(204,52,45,.12)}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{padding:4px 10px;border:1px solid var(--border);border-radius:12px;background:var(--bg3);color:var(--fg2);cursor:pointer;font-size:11px;transition:all .15s;font-family:inherit}
+.chip:hover{border-color:var(--fg2);color:var(--fg)}
+.chip.active{border-color:var(--accent);color:var(--accent-l);background:rgba(124,58,237,.15)}
+
+/* Inputs */
+.igrp{margin-bottom:7px}
+.ilbl{font-size:10px;color:var(--fg2);margin-bottom:3px}
+input[type=text]{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--fg);padding:5px 9px;font-size:12px;outline:none;transition:border-color .15s;font-family:inherit}
+input[type=text]:focus{border-color:var(--accent)}
+
+/* Presets */
+.presets{display:flex;flex-wrap:wrap;gap:4px}
+.preset{padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--fg2);cursor:pointer;font-size:10px;font-weight:600;transition:all .15s;font-family:inherit}
+.preset:hover{border-color:var(--accent-l);color:var(--fg)}
+
+/* Error */
+.err-box{margin:8px 13px;padding:8px 11px;background:rgba(248,81,73,.1);border:1px solid var(--err);border-radius:5px;color:var(--err);font-size:11px;display:none}
+.err-box.show{display:block}
+
+/* Actions */
+.actions{padding:13px;margin-top:auto;border-top:1px solid var(--border)}
+.btn-gen{width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit;letter-spacing:.02em}
+.btn-gen:hover{background:var(--accent-l)}
+.btn-gen:disabled{background:var(--bg3);color:var(--fg2);cursor:not-allowed}
+.btn-write{width:100%;padding:8px;background:transparent;color:var(--ok);border:1px solid var(--ok);border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;margin-top:7px;transition:all .15s;font-family:inherit;display:none}
+.btn-write:hover{background:rgba(63,185,80,.1)}
+.btn-write.show{display:block}
+
+/* ── Content ── */
+.content{flex:1;display:flex;overflow:hidden}
+
+/* Welcome */
+.welcome{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:32px;text-align:center}
+.w-icon{font-size:56px}
+.w-title{font-size:20px;font-weight:700}
+.w-sub{color:var(--fg2);font-size:12px;max-width:380px;line-height:1.65}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:6px;text-align:left;max-width:400px}
+.feat{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:11px 13px}
+.feat-t{font-weight:700;font-size:12px;margin-bottom:3px}
+.feat-s{font-size:11px;color:var(--fg2)}
+
+/* Loading */
+.loading{flex:1;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+.loading.show{display:flex}
+.spin{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{color:var(--fg2);font-size:13px}
+.load-step{color:var(--accent-l);font-size:11px;font-style:italic}
+
+/* Results */
+.results{flex:1;display:none;overflow:hidden}
+.results.show{display:flex}
+
+/* File tree */
+.tree-panel{width:210px;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+.tree-hdr{padding:9px 11px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.tree-stats{font-size:10px;color:var(--accent-l)}
+.ti{display:flex;align-items:center;gap:5px;padding:3px 7px;cursor:pointer;border-radius:4px;margin:1px 3px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.ti:hover{background:var(--bg3)}
+.ti.sel{background:rgba(124,58,237,.2);color:var(--accent-l)}
+.ti.dir{color:var(--fg2);font-weight:600}
+.ti-icon{flex-shrink:0;width:14px;text-align:center}
+
+/* Code panel */
+.code-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.code-hdr{padding:7px 13px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.code-fname{font-family:'SF Mono','Consolas','Courier New',monospace;font-size:11px;color:var(--fg2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-copy{padding:3px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--fg2);cursor:pointer;font-size:11px;transition:all .15s;font-family:inherit;white-space:nowrap}
+.btn-copy:hover{border-color:var(--fg2);color:var(--fg)}
+.btn-copy.done{border-color:var(--ok);color:var(--ok)}
+pre{flex:1;overflow:auto;padding:16px;font-family:'SF Mono','Consolas','Courier New',monospace;font-size:12px;line-height:1.65;tab-size:4;white-space:pre;color:var(--fg);background:var(--bg)}
+
+/* Syntax tokens */
+.kw{color:#FF7B72}.st{color:#79C0FF}.cm{color:#8B949E;font-style:italic}.nm{color:#56D364}.an{color:#E3B341}.tp{color:#FFA657}
+
+/* Toast */
+.toast{position:fixed;bottom:16px;right:16px;background:var(--ok);color:#fff;padding:9px 15px;border-radius:7px;font-size:12px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--fg2)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <span class="hdr-icon">⚙️</span>
+  <span class="hdr-title">Automation Framework Generator</span>
+  <span class="hdr-badge">Powered by Google ADK + Gemini</span>
+</div>
+
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar">
+
+    <div class="sec">
+      <div class="sec-lbl">Language</div>
+      <div class="lang-grid">
+        <button class="lang-btn java active" data-lang="java">Java</button>
+        <button class="lang-btn typescript" data-lang="typescript">TypeScript</button>
+        <button class="lang-btn python" data-lang="python">Python</button>
+        <button class="lang-btn csharp" data-lang="csharp">C#</button>
+        <button class="lang-btn javascript" data-lang="javascript">JavaScript</button>
+        <button class="lang-btn ruby" data-lang="ruby">Ruby</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-lbl">Framework</div>
+      <div class="chips" id="fw-chips"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-lbl">Build Tool</div>
+      <div class="chips" id="build-chips"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-lbl">Test Runner</div>
+      <div class="chips" id="runner-chips"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-lbl">Project Details</div>
+      <div class="igrp">
+        <div class="ilbl">Project Name</div>
+        <input type="text" id="proj-name" placeholder="MyAutomationProject">
+      </div>
+      <div class="igrp">
+        <div class="ilbl">Group ID / Package</div>
+        <input type="text" id="group-id" placeholder="com.example">
+      </div>
+      <div class="igrp">
+        <div class="ilbl">App URL</div>
+        <input type="text" id="app-url" placeholder="https://your-app.com">
+      </div>
+      <div class="igrp">
+        <div class="ilbl">Pages (comma-separated)</div>
+        <input type="text" id="pages" placeholder="Home, Login, Dashboard">
+      </div>
+      <div class="igrp">
+        <div class="ilbl">Author</div>
+        <input type="text" id="author" placeholder="Your Name">
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-lbl">Quick Presets</div>
+      <div class="presets">
+        <button class="preset" data-p="java-pw">Java + PW</button>
+        <button class="preset" data-p="ts-pw">TS + PW</button>
+        <button class="preset" data-p="ts-cy">TS + Cypress</button>
+        <button class="preset" data-p="py-pw">Python + PW</button>
+        <button class="preset" data-p="cs-pw">C# + PW</button>
+      </div>
+    </div>
+
+    <div class="err-box" id="err-box"></div>
+
+    <div class="actions">
+      <button class="btn-gen" id="btn-gen">⚡ Generate Framework</button>
+      <button class="btn-write" id="btn-write">📁 Write to Workspace</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Welcome -->
+    <div class="welcome" id="welcome">
+      <div class="w-icon">🔧</div>
+      <div class="w-title">Generate a complete test automation framework</div>
+      <div class="w-sub">Configure your project on the left, then click Generate — you'll get a fully structured framework written directly into your workspace.</div>
+      <div class="feat-grid">
+        <div class="feat">
+          <div class="feat-t">📄 Page Objects</div>
+          <div class="feat-s">Auto-generated for each page you specify</div>
+        </div>
+        <div class="feat">
+          <div class="feat-t">🧪 Test Classes</div>
+          <div class="feat-s">Ready-to-run tests with common scenarios</div>
+        </div>
+        <div class="feat">
+          <div class="feat-t">🚀 GitHub Actions</div>
+          <div class="feat-s">CI/CD pipeline with Allure reporting</div>
+        </div>
+        <div class="feat">
+          <div class="feat-t">🐳 Docker</div>
+          <div class="feat-s">Containerised test runner + Allure server</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spin"></div>
+      <div class="load-txt">Generating your framework...</div>
+      <div class="load-step" id="load-step">Analysing project requirements</div>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+      <div class="tree-panel">
+        <div class="tree-hdr">
+          <span>Files</span>
+          <span class="tree-stats" id="tree-stats"></span>
+        </div>
+        <div id="file-tree"></div>
+      </div>
+      <div class="code-panel">
+        <div class="code-hdr">
+          <span class="code-fname" id="code-fname">Select a file</span>
+          <button class="btn-copy" id="btn-copy">Copy</button>
+        </div>
+        <pre id="code-view"></pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script nonce="{{NONCE}}">
+const vscode = acquireVsCodeApi();
+
+// ── State ────────────────────────────────────────────────────────────
+let S = { lang:'java', fw:'playwright', build:'Maven', runner:'TestNG', files:[], sel:null };
+
+const FWS   = { java:['Playwright','Selenium'], typescript:['Playwright','Cypress','WebdriverIO'], python:['Playwright','Selenium'], csharp:['Playwright','Selenium'], javascript:['Playwright','Cypress'], ruby:['Capybara'] };
+const BUILDS= { java:['Maven','Gradle'], typescript:['npm','yarn'], python:['pip','poetry'], csharp:['dotnet'], javascript:['npm','yarn'], ruby:['bundler'] };
+const RUNNERS={ java:['TestNG','JUnit 5'], typescript:['Jest','Mocha'], python:['pytest'], csharp:['NUnit','xUnit','MSTest'], javascript:['Jest','Mocha'], ruby:['RSpec'] };
+const PRESETS= {
+  'java-pw': { lang:'java', fw:'playwright', build:'Maven', runner:'TestNG' },
+  'ts-pw':   { lang:'typescript', fw:'playwright', build:'npm', runner:'Jest' },
+  'ts-cy':   { lang:'typescript', fw:'cypress', build:'npm', runner:'Mocha' },
+  'py-pw':   { lang:'python', fw:'playwright', build:'pip', runner:'pytest' },
+  'cs-pw':   { lang:'csharp', fw:'playwright', build:'dotnet', runner:'NUnit' },
+};
+const STEPS = [
+  'Analysing project requirements...',
+  'Generating page objects...',
+  'Building test classes...',
+  'Wiring configuration files...',
+  'Setting up CI/CD pipeline...',
+  'Finalising framework structure...',
+];
+
+// ── Chip renderer ────────────────────────────────────────────────────
+function renderChips(elId, items, current, setter) {
+  document.getElementById(elId).innerHTML = items.map(v =>
+    `<button class="chip${v.toLowerCase()===current?' active':''}" data-v="${v}">${v}</button>`
+  ).join('');
+  document.getElementById(elId).querySelectorAll('.chip').forEach(b =>
+    b.addEventListener('click', () => setter(b.dataset.v.toLowerCase()))
+  );
+}
+
+function syncChips() {
+  const lang = S.lang;
+  const fws = FWS[lang] || [];
+  if (!fws.map(f=>f.toLowerCase()).includes(S.fw)) S.fw = fws[0]?.toLowerCase()||'playwright';
+  const builds = BUILDS[lang] || [];
+  if (!builds.map(b=>b.toLowerCase()).includes(S.build.toLowerCase())) S.build = builds[0]||'npm';
+  const runners = RUNNERS[lang] || [];
+  if (!runners.includes(S.runner)) S.runner = runners[0]||'pytest';
+
+  renderChips('fw-chips',    fws,     S.fw,      v=>{ S.fw=v;    syncChips(); });
+  renderChips('build-chips', builds,  S.build.toLowerCase(), v=>{ S.build=v;  syncChips(); });
+  renderChips('runner-chips',runners, S.runner,  v=>{ S.runner=v; syncChips(); });
+}
+
+// ── Language buttons ─────────────────────────────────────────────────
+document.querySelectorAll('.lang-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.lang-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  S.lang = b.dataset.lang;
+  syncChips();
+}));
+
+// ── Preset buttons ───────────────────────────────────────────────────
+document.querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => {
+  const p = PRESETS[b.dataset.p]; if (!p) return;
+  S.lang=p.lang; S.fw=p.fw; S.build=p.build; S.runner=p.runner;
+  document.querySelectorAll('.lang-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelector('.lang-btn.'+p.lang)?.classList.add('active');
+  syncChips();
+}));
+
+// ── Generate ─────────────────────────────────────────────────────────
+document.getElementById('btn-gen').addEventListener('click', () => {
+  const proj  = document.getElementById('proj-name').value.trim() || 'AutomationProject';
+  const group = document.getElementById('group-id').value.trim()  || 'com.example';
+  const url   = document.getElementById('app-url').value.trim()   || 'https://your-app.com';
+  const pages = (document.getElementById('pages').value.trim()||'Home,Login').split(',').map(p=>p.trim()).filter(Boolean);
+  const auth  = document.getElementById('author').value.trim()    || 'Developer';
+
+  hideErr();
+  showLoading();
+
+  vscode.postMessage({ type:'generate', payload:{
+    project_name: proj,
+    group_id:     group,
+    artifact_id:  proj.toLowerCase().replace(/\s+/g,'-'),
+    language:     S.lang,
+    framework:    S.fw,
+    build_tool:   S.build,
+    test_runner:  S.runner,
+    app_url:      url,
+    pages,
+    test_scenarios: 'verify page loads, verify positive flow, verify error handling',
+    browser: 'chromium',
+    author: auth,
+  }});
+});
+
+// ── Write to workspace ───────────────────────────────────────────────
+document.getElementById('btn-write').addEventListener('click', () => {
+  if (!S.files.length) return;
+  vscode.postMessage({ type:'write', files: S.files });
+});
+
+// ── Copy ─────────────────────────────────────────────────────────────
+document.getElementById('btn-copy').addEventListener('click', () => {
+  if (!S.sel) return;
+  vscode.postMessage({ type:'copy', text: S.sel.content });
+  const btn = document.getElementById('btn-copy');
+  btn.textContent = '✓ Copied'; btn.classList.add('done');
+  setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('done'); }, 2000);
+});
+
+// ── Loading state ────────────────────────────────────────────────────
+let stepTimer=null, stepIdx=0;
+function showLoading() {
+  document.getElementById('welcome').style.display='none';
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('btn-gen').disabled=true;
+  stepIdx=0;
+  document.getElementById('load-step').textContent=STEPS[0];
+  stepTimer=setInterval(()=>{ stepIdx=(stepIdx+1)%STEPS.length; document.getElementById('load-step').textContent=STEPS[stepIdx]; },1800);
+}
+function stopLoading() { clearInterval(stepTimer); document.getElementById('loading').classList.remove('show'); document.getElementById('btn-gen').disabled=false; }
+
+function showErr(msg) {
+  stopLoading();
+  document.getElementById('welcome').style.display='flex';
+  const el=document.getElementById('err-box'); el.textContent='⚠ '+msg; el.classList.add('show');
+}
+function hideErr(){ document.getElementById('err-box').classList.remove('show'); }
+
+// ── File tree ────────────────────────────────────────────────────────
+const ICON_MAP = {'.java':'☕','.ts':'🔷','.tsx':'🔷','.js':'🟨','.jsx':'🟨','.py':'🐍','.cs':'🟢','.xml':'📋','.json':'📦','.yml':'⚙️','.yaml':'⚙️','.md':'📝','.properties':'🔧','.env':'🔧','.toml':'⚙️','.csproj':'🟢','.lock':'🔒','.sh':'📜'};
+function fileIcon(name){ for(const [ext,ico] of Object.entries(ICON_MAP)){ if(name.endsWith(ext)) return ico; } return name==='Dockerfile'?'🐳':'📄'; }
+
+function buildTree(files) {
+  const root={};
+  files.forEach(f=>{ const parts=f.filename.split('/'); let n=root; parts.forEach((p,i)=>{ if(i===parts.length-1){n[p]=f;}else{n[p]=n[p]||{};n=n[p];} }); });
+  return root;
+}
+
+function renderNode(node, container, depth) {
+  Object.entries(node).sort(([a,av],[b,bv])=>{ const ad=!av.filename,bd=!bv.filename; return ad===bd?a.localeCompare(b):ad?-1:1; })
+  .forEach(([key,val])=>{
+    const el=document.createElement('div');
+    el.className='ti'+(val.filename?'':' dir');
+    el.style.paddingLeft=(7+depth*13)+'px';
+    el.innerHTML=`<span class="ti-icon">${val.filename?fileIcon(key):'📁'}</span><span title="${val.filename||key}">${key}${val.filename?'':'/'}</span>`;
+    if(val.filename){ el.addEventListener('click',()=>selectFile(val,el)); }
+    container.appendChild(el);
+    if(!val.filename) renderNode(val,container,depth+1);
+  });
+}
+
+function renderFileTree(files) {
+  const el=document.getElementById('file-tree'); el.innerHTML='';
+  renderNode(buildTree(files),el,0);
+  document.getElementById('tree-stats').textContent=files.length+' files';
+}
+
+function selectFile(file, el) {
+  S.sel=file;
+  document.querySelectorAll('.ti').forEach(x=>x.classList.remove('sel'));
+  el?.classList.add('sel');
+  document.getElementById('code-fname').textContent=file.filename;
+  document.getElementById('code-view').innerHTML=highlight(escHtml(file.content));
+  document.getElementById('btn-copy').textContent='Copy'; document.getElementById('btn-copy').classList.remove('done');
+}
+
+function showResults(data) {
+  stopLoading();
+  S.files=data.files||[];
+  document.getElementById('results').classList.add('show');
+  document.getElementById('btn-write').classList.add('show');
+  renderFileTree(S.files);
+  if(S.files.length>0){
+    const first=S.files[0];
+    const firstEl=document.querySelector('.ti:not(.dir)');
+    selectFile(first,firstEl);
+  }
+}
+
+// ── Syntax highlight ─────────────────────────────────────────────────
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function highlight(code) {
+  return code
+    .replace(/(\/\/[^\n]*)/g,         '<span class="cm">$1</span>')
+    .replace(/(#[^\n{][^\n]*)/g,      '<span class="cm">$1</span>')
+    .replace(/(&quot;[^&\n]*?&quot;)/g,'<span class="st">$1</span>')
+    .replace(/(@\w+)/g,               '<span class="an">$1</span>')
+    .replace(/\b(\d+\.?\d*)\b/g,      '<span class="nm">$1</span>')
+    .replace(/\b(public|private|protected|static|void|class|interface|extends|implements|import|package|return|new|if|else|for|while|try|catch|finally|throws|throw|abstract|final|override|async|await|const|let|var|def|from|namespace|using|sealed|virtual|readonly|internal|partial|get|set|null|true|false|None|True|False|self|this|super)\b/g,'<span class="kw">$1</span>');
+}
+
+// ── Message handler ───────────────────────────────────────────────────
+window.addEventListener('message', e => {
+  const m=e.data;
+  if(m.type==='files')   showResults(m.data);
+  if(m.type==='error')   showErr(m.message);
+  if(m.type==='written'){ toast(`✅ ${m.count} files written to workspace!`); }
+});
+
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),3500); }
+
+// ── Init ──────────────────────────────────────────────────────────────
+syncChips();
+</script>
+</body>
+</html>

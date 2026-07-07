@@ -10,13 +10,15 @@ substitutions:
 
 steps:
 
-  # ── 1. Build frontend (into workspace so tests can access assets) ─────────
+  # ── 1. Build frontends ────────────────────────────────────────────────────
   - id: build-frontend
     name: node:20-slim
     entrypoint: bash
     args:
       - -c
-      - cd frontend && npm install --silent && npm run build
+      - |
+        cd frontend && npm install --silent && npm run build
+        cd ../automation_ui && npm install --silent && npm run build
     waitFor: ["-"]
 
   # ── 2. Build Docker image ─────────────────────────────────────────────────
